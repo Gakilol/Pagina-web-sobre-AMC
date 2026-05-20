@@ -152,7 +152,7 @@ export function DownloadsClient({ initialGuides, units }: DownloadsClientProps) 
                       <div className="flex flex-wrap items-center gap-3 text-[10px] sm:text-xs text-muted-foreground font-mono mt-1">
                         {matchingUnit && (
                           <>
-                            <span className="text-primary-foreground/70 bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-full text-[9px] font-sans">
+                             <span className="text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-full text-[9px] font-sans">
                               Unidad 0{matchingUnit.order_number}
                             </span>
                             <span>•</span>

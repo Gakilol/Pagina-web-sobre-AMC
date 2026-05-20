@@ -286,7 +286,7 @@ export default async function Home() {
                 <span className="text-[10px] text-muted-foreground/50">8086 Assembly</span>
               </div>
               <pre className="text-foreground overflow-x-auto leading-relaxed select-none">
-                <code className="text-primary-foreground/90">{`; Suma de dos números de 8 bits
+                <code className="text-zinc-100">{`; Suma de dos números de 8 bits
 .model small
 .data
     n1 db 05h

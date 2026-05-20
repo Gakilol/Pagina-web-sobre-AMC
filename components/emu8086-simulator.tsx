@@ -787,7 +787,7 @@ export function EMU8086Simulator({ tutorials }: EMU8086SimulatorProps) {
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
                 spellCheck="false"
-                className="w-full h-80 bg-black/60 p-4 font-mono text-xs text-primary-foreground/90 border-0 focus:ring-0 focus:outline-none resize-none leading-relaxed select-all"
+                className="w-full h-80 bg-black/60 p-4 font-mono text-xs text-zinc-100 border-0 focus:bg-black/80 focus:ring-1 focus:ring-primary/20 focus:outline-none resize-none leading-relaxed select-text"
                 placeholder="Escribe tus mnemónicos aquí..."
               />
             </div>

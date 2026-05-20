@@ -40,7 +40,7 @@ export function LessonsTabs({ lessons }: LessonsTabsProps) {
               </span>
               <span>8086 Assembly</span>
             </div>
-            <pre className="p-4 overflow-x-auto text-primary-foreground/90 leading-relaxed select-all">
+            <pre className="p-4 overflow-x-auto text-zinc-100 leading-relaxed select-text">
               <code>{cleanCode}</code>
             </pre>
           </div>
