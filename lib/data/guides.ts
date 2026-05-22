@@ -48,5 +48,21 @@ export const localGuides: Guide[] = [
     file_url: '/materiales/Practica de maquinas 1.docx',
     file_type: 'docx',
     created_at: new Date().toISOString()
+  },
+  {
+    id: 'guia-actividad-6',
+    unit_id: 'unidad-6',
+    title: 'Guía Oficial: Actividad 6 - Arquitectura de Microcontroladores y Arduino',
+    file_url: '/materiales/ACTIVIDAD 6.docx',
+    file_type: 'docx',
+    created_at: new Date().toISOString()
+  },
+  {
+    id: 'guia-proyecto-final',
+    unit_id: 'unidad-6',
+    title: 'Guía Oficial: Proyecto Final - Diseño e Implementación AMC 1',
+    file_url: '/materiales/Proyecto Final AMC 1.docx',
+    file_type: 'docx',
+    created_at: new Date().toISOString()
   }
 ]

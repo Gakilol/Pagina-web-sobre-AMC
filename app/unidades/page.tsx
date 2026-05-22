@@ -45,6 +45,13 @@ const UNIT_THEMES = [
     numberBg: 'bg-emerald-500/10 text-emerald-400',
     accentText: 'text-emerald-400',
   },
+  {
+    border: 'hover:border-rose-500/50',
+    glow: 'group-hover:shadow-[0_0_20px_rgba(244,63,94,0.15)]',
+    badgeBg: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
+    numberBg: 'bg-rose-500/10 text-rose-400',
+    accentText: 'text-rose-400',
+  },
 ]
 
 export default async function UnitsPage() {
