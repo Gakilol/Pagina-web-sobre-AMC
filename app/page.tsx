@@ -56,7 +56,7 @@ export default async function Home() {
               {/* Institution label */}
               <div className="flex items-center justify-center lg:justify-start gap-2 text-muted-foreground text-sm font-mono tracking-widest uppercase">
                 <GraduationCap className="text-primary" size={17} />
-                <span>UNI Nicaragua &bull; RUPAP</span>
+                <span>UNI Nicaragua &bull; RUSB</span>
               </div>
 
               {/* Main heading */}
@@ -422,7 +422,7 @@ export default async function Home() {
             {/* Info */}
             <div className="text-right md:text-right">
               <p className="text-xs text-muted-foreground">Universidad Nacional de Ingeniería (UNI)</p>
-              <p className="text-xs text-muted-foreground/60 mt-1">RUPAP · Managua, Nicaragua</p>
+              <p className="text-xs text-muted-foreground/60 mt-1">RUSB · Managua, Nicaragua</p>
               <p className="text-[10px] text-muted-foreground/40 mt-3">
                 © 2026 Arquitectura de Máquinas 1
               </p>

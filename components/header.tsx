@@ -153,7 +153,7 @@ export function Header() {
 
           <div className="mt-3 pt-3 border-t border-border/40 flex items-center justify-center gap-2 text-[10px] font-mono text-muted-foreground/50 uppercase tracking-wider">
             <Cpu size={10} className="text-primary/50" />
-            <span>Arquitectura de Máquinas 1 · UNI RUPAP</span>
+            <span>Arquitectura de Máquinas 1 · UNI RUSB</span>
           </div>
         </nav>
       </div>

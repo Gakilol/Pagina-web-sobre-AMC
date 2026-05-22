@@ -15,22 +15,22 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: 'Arquitectura de Máquinas 1 | UNI RUPAP Nicaragua',
+    default: 'Arquitectura de Máquinas 1 | UNI RUSB Nicaragua',
     template: '%s | Arquitectura de Máquinas 1 · UNI',
   },
   description: 'Plataforma educativa interactiva para Arquitectura de Máquinas 1. Aprende microprocesadores Intel 8086, ensamblador, microcontroladores y Arduino con simuladores en tiempo real.',
-  keywords: ['Arquitectura de Computadoras', 'EMU8086', 'Intel 8086', 'Ensamblador', 'Arduino', 'Microcontroladores', 'UNI Nicaragua', 'RUPAP', 'Ingeniería de Sistemas'],
+  keywords: ['Arquitectura de Computadoras', 'EMU8086', 'Intel 8086', 'Ensamblador', 'Arduino', 'Microcontroladores', 'UNI Nicaragua', 'RUSB', 'Ingeniería de Sistemas'],
   authors: [{ name: 'Universidad Nacional de Ingeniería (UNI)', url: 'https://www.uni.edu.ni' }],
   openGraph: {
     type: 'website',
     locale: 'es_NI',
     siteName: 'Arquitectura de Máquinas 1 — UNI Nicaragua',
-    title: 'Arquitectura de Máquinas 1 | UNI RUPAP Nicaragua',
+    title: 'Arquitectura de Máquinas 1 | UNI RUSB Nicaragua',
     description: 'Plataforma educativa interactiva: microprocesadores Intel 8086, ensamblador con EMU8086, microcontroladores y simulador de Arduino.',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Arquitectura de Máquinas 1 | UNI RUPAP',
+    title: 'Arquitectura de Máquinas 1 | UNI RUSB',
     description: 'Aprende arquitectura de computadoras, EMU8086 y Arduino con simuladores interactivos.',
   },
   icons: {
