@@ -35,6 +35,13 @@ export const localQuizzes: Quiz[] = [
     title: 'Evaluación Unidad 5: Estructuración y Control Físico de E/S',
     description: 'Valida tu conocimiento sobre constantes, operaciones físicas de Entrada/Salida por puertos, e implementación estructurada con procedimientos y macros expandibles.',
     created_at: new Date().toISOString()
+  },
+  {
+    id: 'quiz-unidad-6',
+    unit_id: 'unidad-6',
+    title: 'Evaluación Unidad 6: Microcontroladores y Arduino',
+    description: 'Pon a prueba tu comprensión sobre la arquitectura Harvard, los microcontroladores embebidos, el ecosistema Arduino Uno y los sistemas de control con sensores y actuadores.',
+    created_at: new Date().toISOString()
   }
 ]
 
@@ -346,6 +353,68 @@ export const localQuestions: (QuizQuestion & { quiz_options: QuizOption[] })[] =
       { id: 'q5-4-o2', question_id: 'q5-4', option_text: 'La guarda en una variable global en el segmento DS', order_number: 2, created_at: new Date().toISOString() },
       { id: 'q5-4-o3', question_id: 'q5-4', option_text: 'La graba directamente en la memoria caché L2', order_number: 3, created_at: new Date().toISOString() },
       { id: 'q5-4-o4', question_id: 'q5-4', option_text: 'La coloca temporalmente en la Pila del sistema (Stack)', order_number: 4, created_at: new Date().toISOString() }
+    ]
+  },
+
+  // QUIZ UNIDAD 6
+  {
+    id: 'q6-1',
+    quiz_id: 'quiz-unidad-6',
+    question_text: '¿Qué característica arquitectónica distingue principalmente a la Arquitectura Harvard de la Von Neumann en microcontroladores?',
+    correct_option_id: 'q6-1-o2',
+    explanation: 'La Arquitectura Harvard separa físicamente la memoria de instrucciones (Flash) y la memoria de datos (SRAM) con buses independientes. Esto permite que la CPU lea una instrucción y acceda a datos al mismo tiempo, eliminando el cuello de botella Von Neumann y mejorando el throughput del pipeline de instrucción.',
+    order_number: 1,
+    created_at: new Date().toISOString(),
+    quiz_options: [
+      { id: 'q6-1-o1', question_id: 'q6-1', option_text: 'Utiliza un solo bus compartido para instrucciones y datos', order_number: 1, created_at: new Date().toISOString() },
+      { id: 'q6-1-o2', question_id: 'q6-1', option_text: 'Separa físicamente la memoria de instrucciones y datos con buses independientes', order_number: 2, created_at: new Date().toISOString() },
+      { id: 'q6-1-o3', question_id: 'q6-1', option_text: 'Ejecuta instrucciones de longitud variable en múltiples ciclos de reloj', order_number: 3, created_at: new Date().toISOString() },
+      { id: 'q6-1-o4', question_id: 'q6-1', option_text: 'Requiere memoria externa obligatoriamente para funcionar', order_number: 4, created_at: new Date().toISOString() }
+    ]
+  },
+  {
+    id: 'q6-2',
+    quiz_id: 'quiz-unidad-6',
+    question_text: '¿Qué microcontrolador equipa al Arduino Uno y bajo qué tipo de arquitectura de conjunto de instrucciones opera?',
+    correct_option_id: 'q6-2-o3',
+    explanation: 'El Arduino Uno equipa el microcontrolador ATmega328P de Atmel (ahora Microchip). Es un microcontrolador de 8 bits que opera bajo la arquitectura AVR RISC (Reduced Instruction Set Computer), ejecutando la mayoría de sus instrucciones en exactamente 1 ciclo de reloj de 16 MHz.',
+    order_number: 2,
+    created_at: new Date().toISOString(),
+    quiz_options: [
+      { id: 'q6-2-o1', question_id: 'q6-2', option_text: 'PIC16F877A bajo arquitectura Harvard CISC', order_number: 1, created_at: new Date().toISOString() },
+      { id: 'q6-2-o2', question_id: 'q6-2', option_text: 'ESP32 bajo arquitectura Xtensa LX6 RISC', order_number: 2, created_at: new Date().toISOString() },
+      { id: 'q6-2-o3', question_id: 'q6-2', option_text: 'ATmega328P bajo arquitectura AVR RISC de 8 bits', order_number: 3, created_at: new Date().toISOString() },
+      { id: 'q6-2-o4', question_id: 'q6-2', option_text: 'ARM Cortex-M0 bajo arquitectura Thumb RISC de 32 bits', order_number: 4, created_at: new Date().toISOString() }
+    ]
+  },
+  {
+    id: 'q6-3',
+    quiz_id: 'quiz-unidad-6',
+    question_text: 'En un programa Arduino, ¿qué instrucciones son necesarias para hacer parpadear un LED en el Pin 13 con un retardo de 1 segundo?',
+    correct_option_id: 'q6-3-o1',
+    explanation: 'Para controlar un LED en Arduino: primero se configura el pin como salida con pinMode(13, OUTPUT). Luego, en el loop(), se alterna el estado con digitalWrite(13, HIGH) para encender y digitalWrite(13, LOW) para apagar, usando delay(1000) para esperar exactamente 1 segundo (1000 milisegundos) entre cada cambio de estado.',
+    order_number: 3,
+    created_at: new Date().toISOString(),
+    quiz_options: [
+      { id: 'q6-3-o1', question_id: 'q6-3', option_text: 'pinMode(13, OUTPUT) + digitalWrite(13, HIGH) + delay(1000) + digitalWrite(13, LOW)', order_number: 1, created_at: new Date().toISOString() },
+      { id: 'q6-3-o2', question_id: 'q6-3', option_text: 'analogWrite(13, 255) + analogWrite(13, 0) con delay(1000)', order_number: 2, created_at: new Date().toISOString() },
+      { id: 'q6-3-o3', question_id: 'q6-3', option_text: 'pinMode(13, INPUT) + digitalRead(13) + delay(1000)', order_number: 3, created_at: new Date().toISOString() },
+      { id: 'q6-3-o4', question_id: 'q6-3', option_text: 'analogRead(13) y comparar con 512 para alternar el estado', order_number: 4, created_at: new Date().toISOString() }
+    ]
+  },
+  {
+    id: 'q6-4',
+    quiz_id: 'quiz-unidad-6',
+    question_text: 'Si un sensor LM35 conectado al pin A0 devuelve analogRead(A0) = 614 (con referencia 5V y ADC de 10 bits), ¿cuál es la temperatura aproximada en grados Celsius?',
+    correct_option_id: 'q6-4-o2',
+    explanation: 'La fórmula de conversión es: Voltaje = (614 / 1023) × 5.0V ≈ 3.0V. Luego, dado que el LM35 produce 10mV por °C: Temperatura = 3.0V / 0.01V/°C = 30°C. Por lo tanto, a lectura ADC = 614 le corresponde aproximadamente 30°C.',
+    order_number: 4,
+    created_at: new Date().toISOString(),
+    quiz_options: [
+      { id: 'q6-4-o1', question_id: 'q6-4', option_text: '25°C', order_number: 1, created_at: new Date().toISOString() },
+      { id: 'q6-4-o2', question_id: 'q6-4', option_text: '30°C', order_number: 2, created_at: new Date().toISOString() },
+      { id: 'q6-4-o3', question_id: 'q6-4', option_text: '35°C', order_number: 3, created_at: new Date().toISOString() },
+      { id: 'q6-4-o4', question_id: 'q6-4', option_text: '45°C', order_number: 4, created_at: new Date().toISOString() }
     ]
   }
 ]

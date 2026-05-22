@@ -1,0 +1,70 @@
+Proyecto Final: Web Educativa de Arquitectura de Computadoras
+Objetivo
+Desarrollar una página web donde el estudiante explique y demuestre los conceptos de la asignatura, integrando teoría y práctica.
+UNIDADES:
+
+UNIDAD I: INTRODUCCIÓN A LOS MICROPROCESADORES Y MICROCONTROLADORES
+CONTENIDOS
+Conceptos de Arquitectura y Organización de Computadoras.
+Arquitectura y Organización de Computadora
+Arquitectura
+Organización
+Estructura
+Función
+Estructura de la Computadora
+1.1.2.1 Procesamiento
+1.1.2.3 Sistema de Memoria
+1.1.2.3 Sistema de Entrada – Salida
+1.2. Diferencia entre Microprocesador y Microcontrolador.
+1.2.1. Definición de Microprocesador
+1.2.2. Definición de Microcontrolador
+1.2.3. Diferencia entre el Microprocesador y Microcontrolador.
+
+
+
+UNIDAD II: ARQUITECTURA DEL MICROPROCESADOR
+CONTENIDOS
+2.1. Arquitectura del Microprocesador.
+2.1.1. Arquitectura Von Newman
+2.1.2. Diagrama de bloques
+2.1.3. Organización externa del Microprocesador (terminales)
+2.2. Conexión del Microprocesador con dispositivos.
+2.2.1. Memoria
+ 2.2.2. Periféricos
+ 2.2.3. De interfaz programable (8255)
+ 2.2.4. Interrupciones programables (8259) 
+UNIDAD III: PROGRAMACIÓN DEL MICROPROCESADOR
+CONTENIDOS
+
+
+
+
+UNIDAD IV: ARQUITECTURA DE LOS MICROCONTROLADORES
+CONTENIDOS
+4.1. Arquitectura de los Microcontroladores.
+4.1.1 diferentes tipos de microcontroladores
+4.1.1.1 Microcontroladore embebidos
+4.1.1.2 Microcontrolador con memoria externa
+4.1.2 Arquitectura de microcontroladores
+4.1.2.1 Harvard vs von Neumann
+4.1.2.2 CISC vs RISC
+
+UNIDAD V: PROGRAMADORES DEL MICROCONTROLADOR
+Contenidos 
+
+
+
+
+
+Secciones adicionales obligatorias
+Tutorial de emu8086
+Tutorial de Arduino
+
+Evaluacion
+
+Comprensión de los temas (explicaciones claras)
+Prácticas (códigos de EMU y Arduino)
+Estructura de la web (orden y claridad visual)
+Creatividad (ejemplos propios)
+
+

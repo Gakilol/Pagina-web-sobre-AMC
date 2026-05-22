@@ -1,0 +1,23 @@
+OBJETIVOS.
+Definir el Microcontrolador desde la perspectiva de su propósito, arquitectura,
+características y aplicaciones, categorizándolos en relación con su arquitectura
+y organización de memoria.
+ARQUITECTURA DE LOS MICROCONTROLADORES 
+(Investigue los conceptos de los siguientes puntos).
+
+Arquitectura de los Microcontroladores.
+Diferentes tipos de Microcontroladores.
+Microcontroladores embebidos
+Microcontrolador con memoria externa
+Arquitectura de Microcontroladores.
+CISC vs RISC
+Proyecto: Simular en una aplicación (Arduino) los siguientes 3 ejercicios. 
+Ejercicios. Entregar captura de la simulación y código en PDF junto con el primer punto.
+Control de un LED: 
+Un ejercicio básico es hacer parpadear un LED. Esto implica configurar un pin de E/S como salida y alternar su estado (encendido/apagado) con retardos de tiempo.
+Semáforo Simple: 
+Diseña un programa que simule un semáforo, con luces rojas, amarillas y verdes que cambien en secuencia.
+Control de Temperatura con Sensor y Actuador: 
+Utiliza un sensor de temperatura y un actuador (como un ventilador o un calentador) para mantener una temperatura constante. 
+Diseñar e implementar en físico uno de los ejercicios o uno que usted domine sobre el tema. Sistema de control utilizando un microcontrolador Arduino. Utilizar tutoriales, ejemplos de código y documentación técnica mostrando el diseño de modelos de simulación de circuitos con microcontrolador.
+

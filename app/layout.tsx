@@ -14,23 +14,30 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'Arquitectura de Máquinas 1 - UNI Nicaragua',
-  description: 'Plataforma educativa para la clase de Arquitectura de Máquinas 1 de la Universidad Nacional de Ingeniería de Nicaragua',
-  generator: 'v0.app',
+  title: {
+    default: 'Arquitectura de Máquinas 1 | UNI RUPAP Nicaragua',
+    template: '%s | Arquitectura de Máquinas 1 · UNI',
+  },
+  description: 'Plataforma educativa interactiva para Arquitectura de Máquinas 1. Aprende microprocesadores Intel 8086, ensamblador, microcontroladores y Arduino con simuladores en tiempo real.',
+  keywords: ['Arquitectura de Computadoras', 'EMU8086', 'Intel 8086', 'Ensamblador', 'Arduino', 'Microcontroladores', 'UNI Nicaragua', 'RUPAP', 'Ingeniería de Sistemas'],
+  authors: [{ name: 'Universidad Nacional de Ingeniería (UNI)', url: 'https://www.uni.edu.ni' }],
+  openGraph: {
+    type: 'website',
+    locale: 'es_NI',
+    siteName: 'Arquitectura de Máquinas 1 — UNI Nicaragua',
+    title: 'Arquitectura de Máquinas 1 | UNI RUPAP Nicaragua',
+    description: 'Plataforma educativa interactiva: microprocesadores Intel 8086, ensamblador con EMU8086, microcontroladores y simulador de Arduino.',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Arquitectura de Máquinas 1 | UNI RUPAP',
+    description: 'Aprende arquitectura de computadoras, EMU8086 y Arduino con simuladores interactivos.',
+  },
   icons: {
     icon: [
-      {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
+      { url: '/icon-light-32x32.png', media: '(prefers-color-scheme: light)' },
+      { url: '/icon-dark-32x32.png',  media: '(prefers-color-scheme: dark)'  },
+      { url: '/icon.svg', type: 'image/svg+xml' },
     ],
     apple: '/apple-icon.png',
   },

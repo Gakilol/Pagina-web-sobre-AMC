@@ -89,6 +89,70 @@ start:
     
     mov ah, 4ch
     int 21h`
+  },
+  {
+    name: 'Comparación y Salto',
+    code: `; Comparar dos valores y saltar
+.model small
+.data
+    num1 db 0Ah
+    num2 db 05h
+.code
+    mov ax, @data
+    mov ds, ax
+    mov al, num1    ; AL = 10d (0Ah)
+    cmp al, num2    ; Comparar AL con num2 (5)
+    je  iguales     ; Saltar si son iguales (ZF=1)
+    mov al, 01h     ; AL=1 → num1 > num2
+    jmp fin
+iguales:
+    mov al, 00h     ; AL=0 → iguales
+fin:
+    mov ah, 4ch
+    int 21h`
+  },
+  {
+    name: 'Operaciones con Pila (PUSH/POP)',
+    code: `; Demostración de la Pila (Stack)
+.code
+    mov ax, 0A0Ah   ; Valor de prueba
+    mov bx, 0B0Bh   ; Otro valor
+    
+    push ax         ; Guardar AX en la pila
+    push bx         ; Guardar BX en la pila
+    
+    mov ax, 0000h   ; Limpiar AX
+    mov bx, 0000h   ; Limpiar BX
+    
+    pop bx          ; Restaurar BX (LIFO: sale BX primero)
+    pop ax          ; Restaurar AX
+    
+    ; Ahora AX=0A0Ah y BX=0B0Bh nuevamente
+    mov ah, 4ch
+    int 21h`
+  },
+  {
+    name: 'División y Módulo',
+    code: `; División: AX / BL
+.code
+    mov ax, 0011h   ; AX = 17 decimal
+    mov bl, 05h     ; BL = 5 divisor
+    div bl          ; AL = cociente (3), AH = residuo (2)
+    
+    ; Mostrar cociente
+    mov dl, al      ; Cociente en DL
+    add dl, 30h     ; A ASCII
+    mov ah, 02h
+    int 21h
+    
+    ; Mostrar residuo
+    mov dl, ah      ; Residuo
+    add dl, 30h
+    mov ah, 02h
+    int 21h
+    
+    mov ah, 4ch
+    int 21h`
   }
 ]
 

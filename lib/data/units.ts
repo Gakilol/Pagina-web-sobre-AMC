@@ -35,6 +35,13 @@ export const localUnits: Unit[] = [
     description: 'Glosario técnico de tipos de datos, control y llamadas a puertos físicos de Entrada/Salida, interrupciones avanzadas y modularización de código con macros y procedimientos.',
     order_number: 5,
     created_at: new Date().toISOString()
+  },
+  {
+    id: 'unidad-6',
+    title: 'Arquitectura de Microcontroladores y Arduino',
+    description: 'Estudio profundo de los microcontroladores embebidos: comparativa de arquitecturas Harvard vs Von Neumann, CISC vs RISC, ecosistema Arduino Uno y desarrollo de sistemas de control físico con LEDs, semáforos y sensores de temperatura.',
+    order_number: 6,
+    created_at: new Date().toISOString()
   }
 ]
 
@@ -377,6 +384,202 @@ Son bloques de instrucciones de ensamblador con nombres asignados definidos por 
 - **Pros/Contras:** Ejecución ultrarrápida (sin saltos físicos en hardware ni interacciones lentas con la pila), pero multiplican enormemente el tamaño físico de la memoria si la macro se utiliza muchas veces en el código.
 - **Parámetros:** Aceptan argumentos variables que sustituyen el texto internamente al expandirse.`,
     order_number: 2,
+    created_at: new Date().toISOString()
+  },
+
+  // UNIDAD 6
+  {
+    id: 'l6-1',
+    unit_id: 'unidad-6',
+    title: 'Arquitectura de Microcontroladores: Harvard, Von Neumann, CISC y RISC',
+    content: `Un microcontrolador es un sistema computacional completo integrado en un solo chip de silicio, diseñado para el control de sistemas embebidos de propósito específico.
+
+**1. Arquitectura Harvard vs Von Neumann en Microcontroladores:**
+
+**Arquitectura Von Neumann (Clásica):**
+Utiliza un único espacio de memoria compartido para instrucciones (programa) y datos. Ambos comparten el mismo bus de datos y de direcciones.
+- **Ventaja:** Diseño simple y flexible.
+- **Desventaja:** Cuello de botella al no poder leer instrucción y dato simultáneamente.
+- *Relacionados:* Intel 8086, computadoras de escritorio clásicas.
+
+**Arquitectura Harvard (Moderna en Microcontroladores):**
+Memorías físicamente separadas para instrucciones (Flash/ROM) y datos (SRAM). Cada memoria tiene sus propios buses independientes.
+- **Ventaja:** La CPU puede buscar la siguiente instrucción mientras procesa datos del ciclo actual, logrando mayor velocidad y eficiencia.
+- **Desventaja:** Mayor complejidad de diseño físico (más pines).
+- *Relacionados:* PIC, AVR (Arduino), ARM Cortex-M.
+
+**2. CISC vs RISC:**
+
+**CISC (Complex Instruction Set Computer):**
+- Instrucciones complejas y de longitud variable que realizan múltiples operaciones físicas en un solo ciclo de ejecución.
+- Menor número de líneas de código de ensamblador por tarea.
+- Requiere circuitería de decodificación más compleja internamente.
+- *Ejemplo:* Intel 8086, x86-64 (procesadores de escritorio modernos).
+
+**RISC (Reduced Instruction Set Computer):**
+- Instrucciones simples, uniformes y de longitud fija que se ejecutan en exactamente un ciclo de reloj.
+- Mayor número de instrucciones de ensamblador necesarias, pero pipeline más eficiente.
+- Permite velocidades de reloj mucho más altas con menor consumo energético.
+- *Ejemplo:* ARM (base de casi todos los microcontroladores modernos y smartphones), RISC-V.
+
+**3. Tipos de Microcontroladores:**
+
+**Microcontroladores Embebidos (Integrados):**
+Toda la circuitería (CPU, RAM, Flash, E/S, ADC, Timers) está en un único chip de silicio compacto. Son los más usados en IoT y electrónica de consumo.
+- *Ejemplos:* ATmega328P (Arduino Uno), ESP32, STM32F103.
+
+**Microcontroladores con Memoria Externa:**
+La CPU está en el chip principal, pero la memoria RAM o Flash de programa se conecta externamente mediante buses físicos. Diseño más flexible para aplicaciones con grandes volúmenes de datos.
+- *Ejemplos:* MCS-51 expandido, familia PIC18F con memoria externa.`,
+    order_number: 1,
+    created_at: new Date().toISOString()
+  },
+  {
+    id: 'l6-2',
+    unit_id: 'unidad-6',
+    title: 'Ecosistema Arduino Uno: Placa, Entradas/Salidas y Componentes',
+    content: `Arduino es una plataforma de desarrollo de hardware y software libre orientada a la creación rápida de prototipos de sistemas embebidos. La placa más popular es el **Arduino Uno**, que utiliza el microcontrolador **ATmega328P** de Atmel (8 bits, arquitectura Harvard, RISC).
+
+**1. Especificaciones Técnicas del Arduino Uno:**
+- **Microcontrolador:** ATmega328P a 16 MHz de reloj.
+- **Memoria Flash (Programa):** 32 KB.
+- **Memoria SRAM (Datos):** 2 KB.
+- **Pines Digitales de E/S:** 14 pines (6 con capacidad PWM, marcados con ~).
+- **Pines Analógicos de Entrada:** 6 pines (A0 a A5), con convertidor ADC de 10 bits.
+- **Voltaje de Operación:** 5V DC.
+- **Voltaje de Alimentación:** 7-12V (jack DC) o 5V (USB).
+
+**2. Pines y Modos de Operación:**
+
+**Pines Digitales de Entrada/Salida:**
+- Funcionan en 2 modos: INPUT (lectura de señales 0V/5V = LOW/HIGH) u OUTPUT (escritura de 0V o 5V).
+- El Pin 13 tiene un LED integrado en la placa útil para pruebas básicas.
+- pinMode(pin, modo): Configura el pin como entrada o salida.
+- digitalWrite(pin, valor): Escribe HIGH (5V) o LOW (0V) en un pin de salida.
+- digitalRead(pin): Lee el estado lógico de un pin de entrada.
+
+**Pines Analógicos y PWM:**
+- analogRead(pinA): Convierte una señal analógica (0V-5V) a un valor digital de 0 a 1023 (resolución de 10 bits del ADC).
+- analogWrite(pin, valor): Genera una señal PWM (modulación de ancho de pulso) en pines marcados con ~ para controlar la intensidad de LEDs o velocidad de motores (valor de 0 a 255).
+
+**3. Componentes Electrónicos Básicos:**
+
+**LED (Light Emitting Diode):**
+Diodo semiconductor que emite luz al ser polarizado directamente. Siempre requiere una resistencia en serie (330Ω a 1kΩ) para limitar la corriente y evitar quemarlo.
+
+**Resistencia:**
+Componente que opone resistencia al flujo de corriente eléctrica. Se identifica por sus bandas de colores. Fundamental para proteger LEDs y configurar divisores de voltaje.
+
+**Sensor de Temperatura LM35:**
+Ci analógico que produce una tensión de salida proporcional a la temperatura: Vout = 10mV × °C. Se conecta al pin analógico A0.
+- Temperatura = (analogRead(A0) × 5.0 / 1023.0) / 0.01
+
+**Protoboard (Breadboard):**
+Tablero de conexiones temporales sin soldadura. Las filas horizontales externas (líneas rojas/negras) son carriles de alimentación (VCC y GND). Los agujeros verticales internos están interconectados en grupos de 5.
+
+**Motor DC (Actuador):**
+Motor de corriente continua controlado mediante transistores o puente-H. Se puede regular su velocidad usando la señal PWM generada con analogWrite().`,
+    order_number: 2,
+    created_at: new Date().toISOString()
+  },
+
+  {
+    id: 'l6-3',
+    unit_id: 'unidad-6',
+    title: 'Sistemas de Control: LED, Semáforo y Control de Temperatura',
+    content: `La Actividad 6 requiere implementar tres sistemas de control usando Arduino como plataforma de microcontrolador. Estos ejercicios demuestran las capacidades de control de entrada/salida digital y analógica.
+
+**Ejercicio 1: Control de un LED (LED Blink)**
+
+Objetivo: Hacer parpadear un LED en el Pin 13 alternando su estado entre ON y OFF con retardos de tiempo configurados.
+
+\`\`\`cpp
+// Control de LED: Parpadeo básico
+const int LED_PIN = 13;  // Pin 13 tiene LED integrado en Arduino Uno
+
+void setup() {
+  pinMode(LED_PIN, OUTPUT);  // Configurar Pin 13 como SALIDA
+}
+
+void loop() {
+  digitalWrite(LED_PIN, HIGH);  // Encender LED (5V en Pin 13)
+  delay(1000);                  // Esperar 1 segundo
+  digitalWrite(LED_PIN, LOW);   // Apagar LED (0V en Pin 13)
+  delay(1000);                  // Esperar 1 segundo
+}
+\`\`\`
+
+**Ejercicio 2: Semáforo Simple**
+
+Objetivo: Simular un semáforo con tres LEDs (Rojo en Pin 8, Amarillo en Pin 9, Verde en Pin 10) que cambian en secuencia automáticamente.
+
+\`\`\`cpp
+// Semáforo de 3 luces
+const int LED_ROJO    = 8;
+const int LED_AMARILLO= 9;
+const int LED_VERDE   = 10;
+
+void setup() {
+  pinMode(LED_ROJO, OUTPUT);
+  pinMode(LED_AMARILLO, OUTPUT);
+  pinMode(LED_VERDE, OUTPUT);
+}
+
+void loop() {
+  // ROJO: Alto (5 segundos)
+  digitalWrite(LED_ROJO, HIGH);
+  delay(5000);
+  digitalWrite(LED_ROJO, LOW);
+
+  // AMARILLO: Precaución (2 segundos)
+  digitalWrite(LED_AMARILLO, HIGH);
+  delay(2000);
+  digitalWrite(LED_AMARILLO, LOW);
+
+  // VERDE: Avanzar (5 segundos)
+  digitalWrite(LED_VERDE, HIGH);
+  delay(5000);
+  digitalWrite(LED_VERDE, LOW);
+}
+\`\`\`
+
+**Ejercicio 3: Control de Temperatura con Sensor LM35 y Actuador**
+
+Objetivo: Leer la temperatura ambiente con un sensor LM35 conectado al pin analógico A0. Si la temperatura supera 30°C, activar el ventilador (motor DC) vía PWM proporcional a la temperatura.
+
+\`\`\`cpp
+// Control de temperatura con LM35 y ventilador DC
+const int SENSOR_PIN = A0;  // Sensor LM35 en pin analógico A0
+const int FAN_PIN    = 6;   // Motor DC en pin PWM 6 (~)
+
+void setup() {
+  Serial.begin(9600);        // Puerto serial para depuración
+  pinMode(FAN_PIN, OUTPUT);
+}
+
+void loop() {
+  int lectura = analogRead(SENSOR_PIN);  // Lectura ADC (0-1023)
+  
+  // Conversión: Vout = 10mV/°C → Temp = (Vout / 10mV)
+  float voltaje = lectura * (5.0 / 1023.0);
+  float temperatura = voltaje / 0.01;  // 10mV por °C = 0.01V/°C
+
+  Serial.print("Temperatura: ");
+  Serial.print(temperatura);
+  Serial.println(" °C");
+
+  if (temperatura >= 30.0) {
+    // Velocidad proporcional: mapear 30-50°C a 0-255 PWM
+    int velocidad = map((int)temperatura, 30, 50, 80, 255);
+    analogWrite(FAN_PIN, velocidad);
+  } else {
+    analogWrite(FAN_PIN, 0);  // Apagar ventilador
+  }
+
+  delay(500);  // Actualizar cada 500ms
+}
+\`\`\``,
+    order_number: 3,
     created_at: new Date().toISOString()
   }
 ]
