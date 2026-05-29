@@ -55,7 +55,8 @@ export default function TutorialArduinoPage() {
           <p className="text-sm sm:text-base text-muted-foreground max-w-4xl leading-relaxed">
             Experimenta con circuitos de Arduino Uno directamente en tu navegador. Selecciona un proyecto de la{' '}
             <strong className="text-white">Actividad 6</strong>, observa el circuito SVG animado en tiempo real,
-            revisa el código fuente C/C++ correspondiente y lee el monitor serial para entender cada instrucción.
+            revisa el código fuente C/C++ correspondiente y lee el monitor serial. ¡Incluso puedes usar el modo{' '}
+            <strong className="text-emerald-400">Creador de Circuitos (Sandbox)</strong> para colocar tus propias piezas y conectar cables interactivos en tiempo real!
           </p>
         </div>
 
@@ -65,7 +66,7 @@ export default function TutorialArduinoPage() {
             { icon: Cpu, label: 'Microcontrolador', value: 'ATmega328P', color: 'text-emerald-400', bg: 'bg-emerald-500/8', border: 'border-emerald-500/20' },
             { icon: Zap, label: 'Frecuencia', value: '16 MHz', color: 'text-cyan-400', bg: 'bg-cyan-500/8', border: 'border-cyan-500/20' },
             { icon: CircuitBoard, label: 'Arquitectura', value: 'AVR RISC', color: 'text-purple-400', bg: 'bg-purple-500/8', border: 'border-purple-500/20' },
-            { icon: BookOpen, label: 'Proyectos', value: '3 Ejercicios', color: 'text-amber-400', bg: 'bg-amber-500/8', border: 'border-amber-500/20' },
+            { icon: BookOpen, label: 'Proyectos', value: '5 Ejemplos + Sandbox', color: 'text-amber-400', bg: 'bg-amber-500/8', border: 'border-amber-500/20' },
           ].map(({ icon: Icon, label, value, color, bg, border }) => (
             <div key={label} className={`flex items-center gap-3 p-3.5 rounded-xl border ${border} ${bg} glass-panel`}>
               <div className={`flex-shrink-0 ${color}`}>

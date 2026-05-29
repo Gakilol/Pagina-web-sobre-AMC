@@ -42,6 +42,13 @@ export const localQuizzes: Quiz[] = [
     title: 'Evaluación Unidad 6: Microcontroladores y Arduino',
     description: 'Pon a prueba tu comprensión sobre la arquitectura Harvard, los microcontroladores embebidos, el ecosistema Arduino Uno y los sistemas de control con sensores y actuadores.',
     created_at: new Date().toISOString()
+  },
+  {
+    id: 'quiz-unidad-7',
+    unit_id: 'unidad-7',
+    title: 'Evaluación Unidad 7: Memoria y Hardware de Microcontroladores',
+    description: 'Cuestionario de autoevaluación técnica sobre organización de memoria (RAM, ROM, EEPROM, Flash), mapeo de direccionamiento, periféricos SFR, ciclos de máquina y periféricos de soporte como el Perro Guardián (WDT).',
+    created_at: new Date().toISOString()
   }
 ]
 
@@ -415,6 +422,67 @@ export const localQuestions: (QuizQuestion & { quiz_options: QuizOption[] })[] =
       { id: 'q6-4-o2', question_id: 'q6-4', option_text: '30°C', order_number: 2, created_at: new Date().toISOString() },
       { id: 'q6-4-o3', question_id: 'q6-4', option_text: '35°C', order_number: 3, created_at: new Date().toISOString() },
       { id: 'q6-4-o4', question_id: 'q6-4', option_text: '45°C', order_number: 4, created_at: new Date().toISOString() }
+    ]
+  },
+  // QUIZ UNIDAD 7
+  {
+    id: 'q7-1',
+    quiz_id: 'quiz-unidad-7',
+    question_text: '¿Qué tipo de memoria del microcontrolador es no volátil y permite el borrado y escritura eléctrica byte a byte a nivel de software para guardar configuraciones del sistema?',
+    correct_option_id: 'q7-1-o3',
+    explanation: 'La memoria EEPROM (Electrically Erasable Programmable Read-Only Memory) permite realizar lecturas y escrituras individuales byte a byte de forma eléctrica directamente en tiempo de ejecución, ideal para configuraciones no volátiles. La memoria Flash es más rápida pero se lee/escribe en bloques o páginas completas.',
+    order_number: 1,
+    created_at: new Date().toISOString(),
+    quiz_options: [
+      { id: 'q7-1-o1', question_id: 'q7-1', option_text: 'SRAM', order_number: 1, created_at: new Date().toISOString() },
+      { id: 'q7-1-o2', question_id: 'q7-1', option_text: 'ROM grabada en máscara', order_number: 2, created_at: new Date().toISOString() },
+      { id: 'q7-1-o3', question_id: 'q7-1', option_text: 'EEPROM', order_number: 3, created_at: new Date().toISOString() },
+      { id: 'q7-1-o4', question_id: 'q7-1', option_text: 'EPROM ultravioleta', order_number: 4, created_at: new Date().toISOString() }
+    ]
+  },
+  {
+    id: 'q7-2',
+    quiz_id: 'quiz-unidad-7',
+    question_text: 'Supón que un microcontrolador de 16 bits de dirección mapea la memoria RAM en el rango 0x8000 - 0xBFFF. Si un programa lee un dato de la dirección 0xA10F, ¿a qué tipo de memoria física se está accediendo?',
+    correct_option_id: 'q7-2-o2',
+    explanation: 'Dado que la dirección 0xA10F se encuentra dentro del rango numérico hexadecimal definido para el direccionamiento físico de la RAM (0x8000 <= 0xA10F <= 0xBFFF), la transacción del bus se dirige de forma inequívoca al chip de memoria RAM.',
+    order_number: 2,
+    created_at: new Date().toISOString(),
+    quiz_options: [
+      { id: 'q7-2-o1', question_id: 'q7-2', option_text: 'ROM (Memoria de Programa)', order_number: 1, created_at: new Date().toISOString() },
+      { id: 'q7-2-o2', question_id: 'q7-2', option_text: 'RAM (Área de Variables)', order_number: 2, created_at: new Date().toISOString() },
+      { id: 'q7-2-o3', question_id: 'q7-2', option_text: 'Registro Especial de Entrada/Salida (SFR)', order_number: 3, created_at: new Date().toISOString() },
+      { id: 'q7-2-o4', question_id: 'q7-2', option_text: 'Puerto de Expansión Serial', order_number: 4, created_at: new Date().toISOString() }
+    ]
+  },
+  {
+    id: 'q7-3',
+    quiz_id: 'quiz-unidad-7',
+    question_text: '¿Qué fenómeno grave de sistema ocurre si un programa de microcontrolador intenta almacenar una estructura de datos de 3 KB en una memoria RAM con capacidad física de solo 2 KB?',
+    correct_option_id: 'q7-3-o1',
+    explanation: 'Intentar guardar datos que exceden la memoria física disponible provoca un Desbordamiento de Memoria (Memory/Stack Overflow), el cual corrompe variables adyacentes, sobrescribe el puntero de pila y causa fallas catastróficas impredecibles en el procesador.',
+    order_number: 3,
+    created_at: new Date().toISOString(),
+    quiz_options: [
+      { id: 'q7-3-o1', question_id: 'q7-3', option_text: 'Desbordamiento de Memoria RAM (RAM/Stack Overflow)', order_number: 1, created_at: new Date().toISOString() },
+      { id: 'q7-3-o2', question_id: 'q7-3', option_text: 'Activación automática de BOD (Brown-Out Reset)', order_number: 2, created_at: new Date().toISOString() },
+      { id: 'q7-3-o3', question_id: 'q7-3', option_text: 'Aumento en los ciclos de máquina de la ALU', order_number: 3, created_at: new Date().toISOString() },
+      { id: 'q7-3-o4', question_id: 'q7-3', option_text: 'Degradación física de las compuertas de la memoria Flash', order_number: 4, created_at: new Date().toISOString() }
+    ]
+  },
+  {
+    id: 'q7-4',
+    quiz_id: 'quiz-unidad-7',
+    question_text: '¿Cómo se le denomina al periférico de protección autónomo del microcontrolador que causa un Reset de hardware automático si el código se cuelga o entra en un bucle infinito?',
+    correct_option_id: 'q7-4-o4',
+    explanation: 'El Perro Guardián (Watchdog Timer - WDT) es un temporizador independiente que corre de manera paralela. Si el software principal no lo reinicia periódicamente en señal de operación normal, el temporizador se desborda y fuerza un reset físico del microcontrolador.',
+    order_number: 4,
+    created_at: new Date().toISOString(),
+    quiz_options: [
+      { id: 'q7-4-o1', question_id: 'q7-4', option_text: 'Controlador de Interrupciones 8259', order_number: 1, created_at: new Date().toISOString() },
+      { id: 'q7-4-o2', question_id: 'q7-4', option_text: 'BOD (Detector de Bajo Voltaje)', order_number: 2, created_at: new Date().toISOString() },
+      { id: 'q7-4-o3', question_id: 'q7-4', option_text: 'Segmentador por Pipeline', order_number: 3, created_at: new Date().toISOString() },
+      { id: 'q7-4-o4', question_id: 'q7-4', option_text: 'Perro Guardián (Watchdog Timer - WDT)', order_number: 4, created_at: new Date().toISOString() }
     ]
   }
 ]

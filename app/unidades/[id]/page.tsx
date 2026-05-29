@@ -9,11 +9,11 @@ interface PageProps {
 }
 
 export default async function UnitDetailPage({ params }: PageProps) {
-  let unit = null
-  let lessons = []
-  let quizzes = []
-  let guides = []
-  let errorMsg = null
+  let unit: any = null
+  let lessons: any[] = []
+  let quizzes: any[] = []
+  let guides: any[] = []
+  let errorMsg: string | null = null
 
   try {
     const { id } = await params

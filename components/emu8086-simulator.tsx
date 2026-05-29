@@ -292,7 +292,7 @@ export function EMU8086Simulator({ tutorials }: EMU8086SimulatorProps) {
           if (cleanLine) {
             const parts = cleanLine.match(/(".*?"|[^,\s]+)/g) || []
             if (parts.length > 0) {
-              const mnemonic = parts[0].toUpperCase()
+              const mnemonic = parts[0]?.toUpperCase() || ''
               const operands = parts.slice(1).map(op => op.trim().replace(/^,|,$/g, ''))
               
               parsedInstructions.push({

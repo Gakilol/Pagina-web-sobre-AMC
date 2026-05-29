@@ -64,5 +64,13 @@ export const localGuides: Guide[] = [
     file_url: '/materiales/Proyecto Final AMC 1.docx',
     file_type: 'docx',
     created_at: new Date().toISOString()
+  },
+  {
+    id: 'guia-actividad-7',
+    unit_id: 'unidad-7',
+    title: 'Guía Oficial: Actividad 7 - Estructuras de Memoria en Microcontroladores y Acceso',
+    file_url: '/materiales/ACTIVIDAD 7.docx',
+    file_type: 'docx',
+    created_at: new Date().toISOString()
   }
 ]

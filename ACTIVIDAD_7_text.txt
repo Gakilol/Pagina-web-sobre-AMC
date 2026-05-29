@@ -1,0 +1,66 @@
+﻿ACTIVIDAD 7 
+ELABORE UN MAPA CONCEPTUAL DE LOS SIGUIENTES PUNTOS.
+
+La memoria en los Microcontroladores
+Almacenamiento de programa
+Área de variables
+Registros especiales
+Características de los Microcontroladores
+ALU y el registro W
+Ciclos de máquina y Pipeline
+Osciladores
+Fuentes de Reset
+Perro Guardián
+abricantes de Microcontroladores
+Instrucciones: Para cada tipo de memoria, incluye lo siguiente:
+Definición.
+Propósito principal.
+Diferencias clave entre cada tipo de memoria.
+
+Ejercicio 1 Tipos de memoria en microcontroladores
+Pregunta: En los microcontroladores, existen varios tipos de memoria. Describe brevemente las siguientes:
+RAM (Memoria de acceso aleatorio)
+ROM (Memoria de solo lectura)
+EPROM (Memoria de solo lectura programable y borrable)
+EEPROM (Memoria de solo lectura programable y borrable eléctricamente)
+Flash
+
+
+
+
+Ejercicio 2 Acceso a memoria y control de direcciones
+Pregunta: Supón que tienes un microcontrolador con 16 bits de dirección. Esto significa que puede direccionar hasta 64 KB de memoria. El microcontrolador está utilizando la siguiente estructura de memoria:
+ROM: 0x0000 - 0x7FFF (32 KB)
+RAM: 0x8000 - 0xBFFF (16 KB) 
+Periféricos: 0xC000 - 0xFFFF (16 KB)
+Responde a las siguientes preguntas:
+¿Cuántas direcciones totales puede direccionar el microcontrolador?
+Si se quiere acceder a un dato en la dirección 0xA10F, ¿a qué tipo de memoria corresponde esta dirección?
+Si un programa tiene que almacenar datos temporalmente, ¿en qué sección de la memoria sería más adecuado almacenar datos durante el proceso de ejecución? Justifica tu respuesta.
+Ejercicio 3 Operaciones con EEPROM
+Pregunta: En un microcontrolador que utiliza EEPROM, deseas almacenar una secuencia de datos de 100 bytes. Cada byte representa un valor de 8 bits.
+¿Cuántas lecturas y escrituras se pueden realizar en la EEPROM antes de que el número de ciclos de vida de la memoria se vea comprometido?
+Explica cómo podrías utilizar la EEPROM para almacenar configuraciones de un sistema sin perder datos después de reiniciar el microcontrolador.
+Ejercicio 4 Consideraciones sobre el tamaño de la memoria
+Pregunta: Un microcontrolador tiene las siguientes especificaciones:
+RAM: 512 bytes.
+ROM: 4 KB. 
+Flash: 8 KB.
+Si se te pide desarrollar un sistema que realice las siguientes tareas:
+Almacenar un código de arranque en la memoria ROM.
+Almacenar datos temporales durante la ejecución del programa.
+Guardar la configuración del usuario en la memoria Flash.
+Explica cómo dividirías el espacio de memoria en estas tres secciones y por qué.
+¿Qué problemas podrías enfrentar al intentar almacenar todo en la memoria ROM o RAM, y cómo los resolverías?
+Ejercicio 5 Desbordamiento de memoria
+Pregunta: Supónganos que un microcontrolador tiene 2 KB de RAM y un programa intenta almacenar una estructura de datos de 3 KB en la memoria RAM.
+¿Qué sucede cuando el programa intenta almacenar más datos de los que la memoria RAM puede contener?
+¿Qué técnicas podrías emplear para evitar un desbordamiento de memoria en este escenario?
+
+
+
+Ejercicio 6 Acceso a memoria externa
+Pregunta: Un microcontrolador tiene solo 512 bytes de RAM, pero se conecta a una memoria externa de 8 KB mediante un bus de datos de 8 bits.
+¿Cómo podría el microcontrolador acceder a los datos de la memoria externa?
+Imagina que la memoria externa se mapea en el rango de direcciones 0x1000 - 0x1FFF. ¿Qué técnicas de programación utilizarías para leer y escribir en la memoria externa?
+

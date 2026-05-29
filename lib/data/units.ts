@@ -42,6 +42,13 @@ export const localUnits: Unit[] = [
     description: 'Estudio profundo de los microcontroladores embebidos: comparativa de arquitecturas Harvard vs Von Neumann, CISC vs RISC, ecosistema Arduino Uno y desarrollo de sistemas de control físico con LEDs, semáforos y sensores de temperatura.',
     order_number: 6,
     created_at: new Date().toISOString()
+  },
+  {
+    id: 'unidad-7',
+    title: 'Estructura de Memoria y Características Especiales de Microcontroladores',
+    description: 'Estudio detallado de la organización de memoria en microcontroladores (RAM, ROM, Flash, EEPROM, Registros Especiales), características del hardware (ALU, W register, Pipeline, Osciladores) y gestión de memoria embebida y externa.',
+    order_number: 7,
+    created_at: new Date().toISOString()
   }
 ]
 
@@ -579,6 +586,93 @@ void loop() {
   delay(500);  // Actualizar cada 500ms
 }
 \`\`\``,
+    order_number: 3,
+    created_at: new Date().toISOString()
+  },
+  // UNIDAD 7
+  {
+    id: 'l7-1',
+    unit_id: 'unidad-7',
+    title: 'Organización de Memoria en Microcontroladores',
+    content: `La memoria en los microcontroladores está altamente integrada y estructurada para maximizar la velocidad y el control en tiempo real. A diferencia de las computadoras convencionales, coexisten varios tipos de memorias en un solo chip:
+
+**1. Memoria de Almacenamiento de Programa (ROM / Flash):**
+Se utiliza para guardar el código ejecutable del programa (instrucciones de máquina). Es una memoria no volátil, es decir, la información no se borra cuando se desconecta la alimentación eléctrica del microcontrolador.
+- **Flash (Predominante):** Permite miles de ciclos de escritura y borrado electrónico directo.
+- **ROM (Read Only Memory):** Grabada en fábrica, de bajo costo para producciones masivas.
+- **EPROM / EEPROM:** Memorias reprogramables (mediante luz ultravioleta o voltajes eléctricos respectivamente).
+
+**2. Área de Variables (RAM):**
+Es la memoria de acceso aleatorio utilizada por la CPU para almacenar datos temporales de variables, arreglos y pila del programa durante la ejecución en vivo. Es volátil: al quitar la corriente, los datos se pierden inmediatamente.
+- **SRAM (Static RAM):** Más rápida, no requiere refresco, ideal para chips embebidos.
+
+**3. Registros de Propósito Especial (SFR):**
+Posiciones de memoria RAM que tienen asignadas funciones físicas de control de hardware específicas.
+- *Ejemplos:* Configuración de dirección de puertos E/S (como \`DDRD\` o \`TRISB\`), banderas de timers, habilitación de interrupciones, estado del convertidor ADC.
+
+**4. Diferencias entre RAM, ROM, EPROM, EEPROM y Flash:**
+- **RAM:** Volátil, lectura/escritura sumamente rápidas e ilimitadas.
+- **ROM:** No volátil, solo lectura, grabada en fábrica, inalterable.
+- **EPROM:** No volátil, borrado físico total con luz ultravioleta, escritura lenta.
+- **EEPROM:** No volátil, borrado y escritura eléctrica byte a byte a nivel de software. Soporta alrededor de 100,000 ciclos de escritura antes de degradarse.
+- **Flash:** No volátil, más rápida que la EEPROM, pero el borrado y escritura se realizan por bloques o páginas enteras.`,
+    order_number: 1,
+    created_at: new Date().toISOString()
+  },
+  {
+    id: 'l7-2',
+    unit_id: 'unidad-7',
+    title: 'Características de los Microcontroladores',
+    content: `Los microcontroladores operan con características internas especializadas optimizadas para la interacción directa con sensores y actuadores físicos:
+
+**1. ALU y el Registro W (o Acumulador):**
+- La **ALU (Unidad Aritmético Lógica)** ejecuta las operaciones físicas binarias.
+- El **Registro W (Working Register)** o Registro Acumulador es el registro central sobre el que se cargan y computan casi todas las instrucciones en chips de arquitectura RISC como los de Microchip (PIC).
+
+**2. Ciclos de Máquina y Pipeline:**
+- **Ciclo de Máquina:** La cantidad de ciclos de reloj necesarios para que la CPU complete una instrucción completa. En PIC suele ser $4$ ciclos de oscilador ($4 \\text{ Tosc} = 1 \\text{ ciclo máquina}$). En AVR (Arduino) la mayoría se ejecutan en exactamente $1$ ciclo de oscilador.
+- **Pipeline (Segmentación):** Permite el solapamiento de ejecución y búsqueda de instrucciones. Mientras la CPU ejecuta la instrucción actual, el hardware simultáneamente busca la siguiente instrucción en la memoria Flash, duplicando el rendimiento lógico total.
+
+**3. Osciladores (Reloj del Sistema):**
+Generan la señal de onda cuadrada periódica que sincroniza el funcionamiento interno del chip. Pueden ser:
+- **Cristal de Cuarzo externo (XT/HS):** Altamente estable y preciso (e.g., 16 MHz en Arduino).
+- **RC interno (Resistencia-Condensador):** Económico y de bajo consumo, pero inestable ante variaciones térmicas.
+
+**4. Fuentes de Reset:**
+Causan que el contador de programa (PC) regrese a la dirección de inicio (\`0x0000\`). Incluyen:
+- **POR (Power-On Reset):** Al conectar la alimentación principal.
+- **MCLR (Master Clear):** Activación manual por pin externo físico.
+- **BOD (Brown-Out Reset):** Si el voltaje cae por debajo de un umbral seguro para evitar corrupción de datos.
+
+**5. Perro Guardián (Watchdog Timer - WDT):**
+Es un temporizador interno autónomo con su propio oscilador RC independiente. Si el programa del microcontrolador entra en un bucle infinito o se bloquea (cuelga), el WDT se desborda y fuerza un Reset físico del microcontrolador de forma automática para restaurar el servicio. El software debe reiniciarlo periódicamente (\`CLRWDT\`) en condiciones normales de funcionamiento.`,
+    order_number: 2,
+    created_at: new Date().toISOString()
+  },
+  {
+    id: 'l7-3',
+    unit_id: 'unidad-7',
+    title: 'Acceso, Mapeo y Gestión de Memoria Embebida',
+    content: `La gestión correcta del mapa de memoria física y las técnicas de direccionamiento determinan el correcto desempeño del firmware en sistemas de bajo nivel:
+
+**1. Mapeo de Direcciones (Memory Mapping):**
+Supongamos un microcontrolador de 16 bits de dirección (capacidad de direccionar $2^{16} = 64 \\text{ KB}$ de memoria física). Su mapa de direcciones organiza el espacio de la siguiente forma:
+- **ROM (32 KB):** Rango \`0x0000 - 0x7FFF\`. Contiene el código de arranque (Bootloader) e instrucciones principales del programa.
+- **RAM (16 KB):** Rango \`0x8000 - 0xBFFF\`. Destinada para variables dinámicas y almacenamiento temporal de datos en vivo.
+- **Periféricos y SFR (16 KB):** Rango \`0xC000 - 0xFFFF\`. Mapea los registros especiales de control de puertos de hardware y E/S.
+- *Ejemplo de Acceso:* Acceder a la dirección \`0xA10F\` corresponde inequívocamente al espacio de la memoria RAM del sistema.
+
+**2. Desbordamiento de Memoria (Memory Overflow):**
+Ocurre si un programa intenta almacenar una estructura de datos estática mayor a la RAM física disponible (e.g., intentar declarar una tabla de datos de 3 KB en un microcontrolador de 2 KB de RAM).
+- **Consecuencias:** Sobrescribe posiciones ajenas de memoria, colisiona con el puntero de la Pila (Stack Overflow) y provoca un fallo crítico del procesador o comportamientos caóticos.
+- **Solución/Técnicas:** Uso de variables dinámicas localizadas, almacenamiento de tablas de constantes directamente en la memoria Flash en lugar de la RAM (utilizando modificadores de compilación como \`PROGMEM\` en Arduino), y optimización del uso de variables locales.
+
+**3. Acceso a Memoria Externa:**
+Si el espacio interno es insuficiente (e.g., solo 512 bytes de RAM interna) y el chip cuenta con bus de datos externo, se puede expandir mediante buses externos de direcciones y datos:
+- El microcontrolador coloca la dirección en su puerto externo de direcciones (mapeada a un rango lógico como \`0x1000 - 0x1FFF\`).
+- Habilita las señales físicas de control de lectura/escritura (\`RD\` / \`WR\`).
+- Transfiere el byte de datos a través del bus de datos bidireccional de 8 bits.
+- **Técnicas en software:** Uso de punteros a direcciones de memoria directa indirecta mediante registros base/índice.`,
     order_number: 3,
     created_at: new Date().toISOString()
   }

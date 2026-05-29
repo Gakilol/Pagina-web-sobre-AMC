@@ -187,9 +187,9 @@ export default async function Home() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
             { label: 'Unidades Temáticas', value: units.length, color: 'bg-primary', hover: 'group-hover:text-primary', note: 'Currículum Oficial UNI' },
-            { label: 'Lecciones Académicas', value: '18+', color: 'bg-cyan-500', hover: 'group-hover:text-cyan-400', note: 'Con ejemplos y diagramas' },
-            { label: 'Quizzes Interactivos', value: '6', color: 'bg-amber-500', hover: 'group-hover:text-amber-400', note: 'Retroalimentación técnica' },
-            { label: 'Materiales Descargables', value: '6+', color: 'bg-emerald-500', hover: 'group-hover:text-emerald-400', note: 'Guías y prácticas Word/PDF' },
+            { label: 'Lecciones Académicas', value: '21+', color: 'bg-cyan-500', hover: 'group-hover:text-cyan-400', note: 'Con ejemplos y diagramas' },
+            { label: 'Quizzes Interactivos', value: '7', color: 'bg-amber-500', hover: 'group-hover:text-amber-400', note: 'Retroalimentación técnica' },
+            { label: 'Materiales Descargables', value: '7+', color: 'bg-emerald-500', hover: 'group-hover:text-emerald-400', note: 'Guías y prácticas Word/PDF' },
           ].map(({ label, value, color, hover, note }) => (
             <div key={label} className="relative rounded-xl border border-border/50 bg-card/35 p-5 glass-panel text-center overflow-hidden group glass-card-hover">
               <div className={`absolute top-0 left-0 w-full h-[3px] ${color}`} />
