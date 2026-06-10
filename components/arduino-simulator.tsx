@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Play, Pause, RotateCcw, CircuitBoard, Code2, ChevronRight, Info, Thermometer, Zap, Lightbulb, Activity, Plus, Trash2, Sliders } from 'lucide-react'
+import { Play, Pause, RotateCcw, CircuitBoard, Code2, ChevronRight, Info, Thermometer, Zap, Lightbulb, Activity, Plus, Trash2, Sliders, Save, FolderOpen } from 'lucide-react'
 
 // ─── Project Types ──────────────────────────────────────────────────────────
 
@@ -62,15 +62,6 @@ const PROJECTS: Project[] = [
     borderColor: 'border-rose-500/40',
     badgeBg: 'bg-rose-500/10',
     desc: 'Sensor ultrasónico HC-SR04 con indicador de distancia por buzzer y LED.'
-  },
-  {
-    id: 'sandbox',
-    name: 'Creador de Circuitos',
-    icon: Code2,
-    color: 'text-purple-400',
-    borderColor: 'border-purple-500/40',
-    badgeBg: 'bg-purple-500/10',
-    desc: 'Sandbox libre: ¡coloca piezas (LEDs, zumbadores, servos) y conecta cables interactivos!'
   }
 ]
 
@@ -238,7 +229,7 @@ function LedCircuit({ ledOn }: { ledOn: boolean }) {
       {/* Pin labels on board */}
       {[13, 12, 11, 10].map((pin, i) => (
         <g key={pin}>
-          <rect x="130" y="108 + i * 16" width="10" height="10" rx="2" fill="#374151" stroke="#4b5563" strokeWidth="0.5" />
+          <rect x="130" y={108 + i * 16} width="10" height="10" rx="2" fill="#374151" stroke="#4b5563" strokeWidth="0.5" />
           <text x="126" y={116 + i * 16} textAnchor="end" fill="#9ca3af" fontSize="6" fontFamily="monospace">~{pin}</text>
         </g>
       ))}
@@ -577,191 +568,172 @@ function UltrasonicoCircuit({ distance, isBuzzerActive }: { distance: number; is
   )
 }
 
-// ─── Sandbox / Custom Circuit Maker SVG ──────────────────────────────────────
+// ─── Sandbox Types & Definitions ─────────────────────────────────────────────
 
 interface SandboxComponent {
   id: string
-  type: 'led' | 'buzzer' | 'servo' | 'pot'
-  pin: string // e.g., '13', '12', '9', '3', 'A0', 'A1'
+  type: 'led' | 'buzzer' | 'servo' | 'pot' | 'button' | 'resistor'
+  x: number
+  y: number
   color?: 'red' | 'yellow' | 'green' | 'blue'
-  state?: boolean | number // LED/Buzzer = active, Servo = angle, Pot = value
+  state?: boolean | number // LED/Buzzer/Button state, Servo angle, Pot value
 }
 
-interface SandboxCircuitProps {
-  components: SandboxComponent[]
-  onPotChange: (id: string, val: number) => void
-  onServoChange: (id: string, angle: number) => void
+interface SandboxWire {
+  id: string
+  from: { componentId: string, nodeName: string }
+  to: { componentId: string, nodeName: string }
+  color: string
 }
 
-function SandboxCircuit({ components, onPotChange, onServoChange }: SandboxCircuitProps) {
-  return (
-    <svg viewBox="0 0 320 220" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
-      {/* Arduino board */}
-      <rect x="10" y="40" width="110" height="170" rx="6" fill="#1e3a2f" stroke="#2d5c3f" strokeWidth="1.5" />
-      <text x="65" y="58" textAnchor="middle" fill="#4ade80" fontSize="8" fontFamily="monospace" fontWeight="bold">ARDUINO UNO</text>
+type SandboxSketch = 'monitor' | 'blink' | 'pot-servo' | 'button-led' | 'pot-buzzer'
 
-      {/* Render selected connection ports visually in white/green */}
-      {['13', '12', '10', '9', '7', '6', '3', '2'].map((pin, i) => (
-        <rect key={pin} x="110" y={70 + i * 14} width="10" height="8" rx="1.5" fill="#374151" stroke="#4b5563" strokeWidth="0.5" />
-      ))}
-      {['A0', 'A1', 'A2'].map((pin, i) => (
-        <rect key={pin} x="110" y="180 + i * 10" width="10" height="7" rx="1" fill="#1a2744" stroke="#2563eb" strokeWidth="0.5" />
-      ))}
+const SANDBOX_SKETCHES = [
+  { id: 'monitor', name: 'Monitoreo de Pines (Por Defecto)', code: '// Lee y reporta el estado analógico y digital en el Monitor Serial.' },
+  { id: 'blink', name: 'Parpadeo (Blink) - Pin 13', code: 'void setup() {\n  pinMode(13, OUTPUT);\n}\n\nvoid loop() {\n  digitalWrite(13, HIGH);\n  delay(1000);\n  digitalWrite(13, LOW);\n  delay(1000);\n}' },
+  { id: 'pot-servo', name: 'Servo Controlado por Potenciómetro - A0 a Pin 9', code: '#include <Servo.h>\nServo myservo;\n\nvoid setup() {\n  myservo.attach(9);\n}\n\nvoid loop() {\n  int val = analogRead(A0);\n  int angle = map(val, 0, 1023, 0, 180);\n  myservo.write(angle);\n  delay(15);\n}' },
+  { id: 'button-led', name: 'Control de LED con Pulsador - Pin 2 a Pin 13', code: 'void setup() {\n  pinMode(13, OUTPUT);\n  pinMode(2, INPUT);\n}\n\nvoid loop() {\n  int buttonState = digitalRead(2);\n  digitalWrite(13, buttonState);\n}' },
+  { id: 'pot-buzzer', name: 'Alarma Acústica - A0 a Pin 3', code: 'void setup() {\n  pinMode(3, OUTPUT);\n}\n\nvoid loop() {\n  int val = analogRead(A0);\n  if (val > 600) {\n    tone(3, 1000);\n  } else {\n    noTone(3);\n  }\n}' }
+] as const
 
-      {/* Protoboard base */}
-      <rect x="160" y="45" width="150" height="160" rx="4" fill="#e2e8f0" stroke="#cbd5e0" strokeWidth="1" />
-      <text x="235" y="56" textAnchor="middle" fill="#718096" fontSize="6.5" fontWeight="bold" fontFamily="monospace">TABLERO DE PRUEBAS</text>
+const ARDUINO_PINS = [
+  { name: '13', label: '~13', y: 20, type: 'digital' },
+  { name: '12', label: '12', y: 35, type: 'digital' },
+  { name: '11', label: '~11', y: 50, type: 'digital' },
+  { name: '10', label: '~10', y: 65, type: 'digital' },
+  { name: '9', label: '~9', y: 80, type: 'digital' },
+  { name: '8', label: '8', y: 95, type: 'digital' },
+  { name: '7', label: '7', y: 110, type: 'digital' },
+  { name: '6', label: '~6', y: 125, type: 'digital' },
+  { name: '5', label: '~5', y: 140, type: 'digital' },
+  { name: '4', label: '4', y: 155, type: 'digital' },
+  { name: '3', label: '~3', y: 170, type: 'digital' },
+  { name: '2', label: '2', y: 185, type: 'digital' },
+  { name: 'GND_D', label: 'GND', y: 200, type: 'gnd' },
+  { name: 'A0', label: 'A0', y: 225, type: 'analog' },
+  { name: 'A1', label: 'A1', y: 240, type: 'analog' },
+  { name: 'A2', label: 'A2', y: 255, type: 'analog' },
+  { name: '5V', label: '5V', y: 270, type: 'power' },
+  { name: 'GND_P', label: 'GND', y: 285, type: 'gnd' }
+] as const
 
-      {/* If no components placed */}
-      {components.length === 0 && (
-        <text x="235" y="120" textAnchor="middle" fill="#a0aec0" fontSize="7" fontFamily="sans-serif">
-          [ Vacío - Añade piezas en el panel ]
-        </text>
-      )}
+const getArduinoPinCoords = (pinName: string): { x: number, y: number } => {
+  const ax = 40, ay = 80;
+  const pinObj = ARDUINO_PINS.find(p => p.name === pinName);
+  const relativeY = pinObj ? pinObj.y : 20;
+  return { x: ax + 165, y: ay + relativeY };
+};
 
-      {/* Dynamic render of placed pieces & wires */}
-      {components.map((c, index) => {
-        const compY = 80 + index * 30
-        const compX = 220
-
-        // Get starting Y coordinates of Arduino pins
-        let startY = 74
-        if (c.pin === '13') startY = 74
-        else if (c.pin === '12') startY = 88
-        else if (c.pin === '10') startY = 102
-        else if (c.pin === '9') startY = 116
-        else if (c.pin === '7') startY = 130
-        else if (c.pin === '6') startY = 144
-        else if (c.pin === '3') startY = 158
-        else if (c.pin === '2') startY = 172
-        else if (c.pin === 'A0') startY = 183
-        else if (c.pin === 'A1') startY = 193
-        else if (c.pin === 'A2') startY = 203
-
-        // Colors of wire
-        const wireColor = c.type === 'led' ? '#f59e0b' : c.type === 'buzzer' ? '#ef4444' : c.type === 'servo' ? '#6366f1' : '#10b981'
-
-        return (
-          <g key={c.id}>
-            {/* Draw dynamic wire from Arduino port to component */}
-            <path
-              d={`M120 ${startY} L 145 ${startY} L 145 ${compY} L ${compX} ${compY}`}
-              fill="none"
-              stroke={wireColor}
-              strokeWidth="1.5"
-              strokeDasharray={c.state ? "none" : "none"}
-              style={{ transition: 'all 0.3s ease' }}
-            />
-
-            {/* Component rendering */}
-            {c.type === 'led' && (
-              <g transform={`translate(${compX}, ${compY - 10})`}>
-                <circle cx="15" cy="10" r="8" fill={c.state ? (c.color === 'red' ? '#ef4444' : c.color === 'yellow' ? '#f59e0b' : c.color === 'green' ? '#10b981' : '#3b82f6') : '#475569'} stroke="#334155" strokeWidth="1" />
-                <rect x="13" y="18" width="4" height="6" fill="#94a3b8" />
-                <text x="28" y="13" fill="#334155" fontSize="6.5" fontWeight="bold" fontFamily="monospace">
-                  LED {c.pin}
-                </text>
-              </g>
-            )}
-
-            {c.type === 'buzzer' && (
-              <g transform={`translate(${compX}, ${compY - 10})`}>
-                <circle cx="15" cy="10" r="9" fill="#1e293b" stroke="#334155" strokeWidth="1" />
-                <circle cx="15" cy="10" r="3" fill="#0f172a" />
-                {c.state && (
-                  <path d="M 5 5 A 4 4 0 0 1 5 15" stroke="#ef4444" strokeWidth="0.8" fill="none" className="animate-pulse" />
-                )}
-                <text x="28" y="13" fill="#334155" fontSize="6.5" fontWeight="bold" fontFamily="monospace">
-                  ZUMB. {c.pin}
-                </text>
-              </g>
-            )}
-
-            {c.type === 'servo' && (
-              <g transform={`translate(${compX}, ${compY - 10})`}>
-                <rect x="0" y="2" width="28" height="16" rx="2" fill="#2563eb" stroke="#1d4ed8" strokeWidth="1" />
-                {/* Horn rotating */}
-                <g transform={`rotate(${Number(c.state || 0)}, 20, 10)`} style={{ transition: 'transform 0.15s ease' }}>
-                  <rect x="8" y="8" width="24" height="4" rx="1" fill="#f8fafc" />
-                </g>
-                <circle cx="20" cy="10" r="3" fill="#94a3b8" />
-                <text x="32" y="12" fill="#334155" fontSize="6.5" fontWeight="bold" fontFamily="monospace">
-                  SERVO ({c.state || 0}°)
-                </text>
-              </g>
-            )}
-
-            {c.type === 'pot' && (
-              <g transform={`translate(${compX}, ${compY - 10})`}>
-                <circle cx="14" cy="10" r="8" fill="#334155" stroke="#1e293b" strokeWidth="1" />
-                {/* Knob line */}
-                <line x1="14" y1="10" x2={14 + 7 * Math.sin(((Number(c.state || 0)/1023*270-135)*Math.PI)/180)} y2={10 - 7 * Math.cos(((Number(c.state || 0)/1023*270-135)*Math.PI)/180)} stroke="#10b981" strokeWidth="1.8" />
-                <text x="26" y="12" fill="#334155" fontSize="6.5" fontWeight="bold" fontFamily="monospace">
-                  POT ({c.state || 0})
-                </text>
-              </g>
-            )}
-          </g>
-        )
-      })}
-    </svg>
-  )
-}
+const getComponentNodeRelativeCoords = (comp: SandboxComponent, nodeName: string): { x: number, y: number } => {
+  const { x, y, type } = comp;
+  switch (type) {
+    case 'led':
+      if (nodeName === 'anode') return { x: x + 10, y: y + 55 };
+      if (nodeName === 'cathode') return { x: x + 25, y: y + 55 };
+      break;
+    case 'buzzer':
+      if (nodeName === 'pos') return { x: x + 10, y: y + 50 };
+      if (nodeName === 'neg') return { x: x + 25, y: y + 50 };
+      break;
+    case 'resistor':
+      if (nodeName === 'termA') return { x: x, y: y + 15 };
+      if (nodeName === 'termB') return { x: x + 50, y: y + 15 };
+      break;
+    case 'servo':
+      if (nodeName === 'sig') return { x: x + 10, y: y + 55 };
+      if (nodeName === 'vcc') return { x: x + 25, y: y + 55 };
+      if (nodeName === 'gnd') return { x: x + 40, y: y + 55 };
+      break;
+    case 'pot':
+      if (nodeName === 'vcc') return { x: x + 10, y: y + 50 };
+      if (nodeName === 'wiper') return { x: x + 25, y: y + 50 };
+      if (nodeName === 'gnd') return { x: x + 40, y: y + 50 };
+      break;
+    case 'button':
+      if (nodeName === 'termA') return { x: x + 10, y: y + 45 };
+      if (nodeName === 'termB') return { x: x + 30, y: y + 45 };
+      break;
+  }
+  return { x, y };
+};
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export function ArduinoSimulator() {
+  const [viewMode, setViewMode] = useState<'guided' | 'sandbox'>('guided')
   const [activeProject, setActiveProject] = useState<ProjectId>('led')
   const [isRunning, setIsRunning] = useState(false)
   const [tick, setTick] = useState(0)
 
-  // LED state
+  // Guided Projects states
   const [ledOn, setLedOn] = useState(false)
-
-  // Semaforo state
   const [semaforoPhase, setSemaforoPhase] = useState<'rojo' | 'amarillo' | 'verde'>('rojo')
   const phaseTimers = { rojo: 5, amarillo: 2, verde: 5 }
   const [phaseCountdown, setPhaseCountdown] = useState(5)
-
-  // Temperature state
   const [temperature, setTemperature] = useState(25)
   const fanSpeed = temperature >= 30 ? Math.min(255, Math.round(((temperature - 30) / 20) * 175 + 80)) : 0
-
-  // Servo state
   const [servoAngle, setServoAngle] = useState(90)
   const [potValue, setPotValue] = useState(512)
-
-  // Parking Sensor state
   const [parkDistance, setParkDistance] = useState(75)
   const [buzzerActive, setBuzzerActive] = useState(false)
 
-  // Sandbox State
+  // Sandbox drag & drop and wiring states
   const [sandboxComponents, setSandboxComponents] = useState<SandboxComponent[]>([
-    { id: '1', type: 'led', pin: '13', color: 'red', state: false },
-    { id: '2', type: 'pot', pin: 'A0', state: 512 }
+    { id: '1', type: 'led', x: 340, y: 120, color: 'red', state: false },
+    { id: '2', type: 'pot', x: 500, y: 100, state: 512 },
+    { id: '3', type: 'resistor', x: 340, y: 240 }
   ])
-  const [sandboxSelectType, setSandboxSelectType] = useState<'led' | 'buzzer' | 'servo' | 'pot'>('led')
-  const [sandboxSelectPin, setSandboxSelectPin] = useState('13')
-  const [sandboxSelectColor, setSandboxSelectColor] = useState<'red' | 'yellow' | 'green' | 'blue'>('red')
+  const [sandboxWires, setSandboxWires] = useState<SandboxWire[]>([
+    { id: 'w1', from: { componentId: 'arduino', nodeName: '13' }, to: { componentId: '1', nodeName: 'anode' }, color: '#f59e0b' },
+    { id: 'w2', from: { componentId: '1', nodeName: 'cathode' }, to: { componentId: '3', nodeName: 'termA' }, color: '#4b5563' },
+    { id: 'w3', from: { componentId: '3', nodeName: 'termB' }, to: { componentId: 'arduino', nodeName: 'GND_D' }, color: '#1f2937' },
+    { id: 'w4', from: { componentId: '2', nodeName: 'wiper' }, to: { componentId: 'arduino', nodeName: 'A0' }, color: '#10b981' },
+    { id: 'w5', from: { componentId: '2', nodeName: 'vcc' }, to: { componentId: 'arduino', nodeName: '5V' }, color: '#ef4444' },
+    { id: 'w6', from: { componentId: '2', nodeName: 'gnd' }, to: { componentId: 'arduino', nodeName: 'GND_P' }, color: '#1f2937' }
+  ])
 
-  // Console log
-  const [logs, setLogs] = useState<string[]>(['[Sistema] Arduino inicializado.', '[Sistema] Listo para ejecutar.'])
+  const [sandboxSketch, setSandboxSketch] = useState<SandboxSketch>('monitor')
+  const [sandboxSelectType, setSandboxSelectType] = useState<SandboxComponent['type']>('led')
+  const [sandboxSelectColor, setSandboxSelectColor] = useState<'red' | 'yellow' | 'green' | 'blue'>('red')
   
-  // Custom scroll reference to replace global scrollIntoView
+  // Drag states
+  const [draggingId, setDraggingId] = useState<string | null>(null)
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
+  
+  // Wire creation states
+  const [wireStart, setWireStart] = useState<{ componentId: string, nodeName: string } | null>(null)
+  const [wireColor, setWireColor] = useState<string>('#f59e0b')
+  const [hoverNode, setHoverNode] = useState<string | null>(null)
+  const [tempMousePos, setTempMousePos] = useState({ x: 0, y: 0 })
+
+  // Wire coordinate mapper
+  const getNodeCoords = useCallback((componentId: string, nodeName: string): { x: number, y: number } => {
+    if (componentId === 'arduino') {
+      return getArduinoPinCoords(nodeName);
+    }
+    const comp = sandboxComponents.find(c => c.id === componentId);
+    if (!comp) return { x: 0, y: 0 };
+    return getComponentNodeRelativeCoords(comp, nodeName);
+  }, [sandboxComponents]);
+
+  const svgRef = useRef<SVGSVGElement>(null)
+
+  // Console log logs container
+  const [logs, setLogs] = useState<string[]>(['[Sistema] Arduino inicializado.', '[Sistema] Listo para ejecutar.'])
   const logsContainerRef = useRef<HTMLDivElement>(null)
 
   const addLog = useCallback((msg: string) => {
     setLogs(prev => [...prev.slice(-20), `[${new Date().toLocaleTimeString('es-NI')}] ${msg}`])
   }, [])
 
-  // Auto-scroll logs locally without moving the browser screen!
+  // Auto-scroll logs locally
   useEffect(() => {
     if (logsContainerRef.current) {
       logsContainerRef.current.scrollTop = logsContainerRef.current.scrollHeight
     }
   }, [logs])
 
-  // Reset on project change
+  // Reset states when project changes
   useEffect(() => {
     setIsRunning(false)
     setLedOn(false)
@@ -772,8 +744,113 @@ export function ArduinoSimulator() {
     setParkDistance(75)
     setBuzzerActive(false)
     setTick(0)
+    setWireStart(null)
     setLogs(['[Sistema] Proyecto cargado: ' + PROJECTS.find(p => p.id === activeProject)?.name, '[Sistema] Presiona ▶ para ejecutar.'])
   }, [activeProject])
+
+  // Reset sandbox when switching modes
+  useEffect(() => {
+    setIsRunning(false)
+    setTick(0)
+    setWireStart(null)
+    if (viewMode === 'sandbox') {
+      setLogs(['[Tablero] Laboratorio Visual Sandbox cargado.', '[Tablero] Arrastra las piezas y haz clic en sus terminales para cablear.'])
+    } else {
+      setLogs(['[Sistema] Proyecto cargado: ' + PROJECTS.find(p => p.id === activeProject)?.name, '[Sistema] Presiona ▶ para ejecutar.'])
+    }
+  }, [viewMode]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Draggable Mouse Position Mapping
+  const getSVGMousePos = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (!svgRef.current) return { x: 0, y: 0 };
+    const rect = svgRef.current.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 800;
+    const y = ((e.clientY - rect.top) / rect.height) * 500;
+    return { x: Math.round(x), y: Math.round(y) };
+  };
+
+  const startDrag = (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDraggingId(id);
+    
+    if (svgRef.current) {
+      const rect = svgRef.current.getBoundingClientRect();
+      const mx = ((e.clientX - rect.left) / rect.width) * 800;
+      const my = ((e.clientY - rect.top) / rect.height) * 500;
+      
+      const comp = sandboxComponents.find(c => c.id === id);
+      if (comp) {
+        setDragOffset({
+          x: mx - comp.x,
+          y: my - comp.y
+        });
+      }
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    const mousePos = getSVGMousePos(e);
+    setTempMousePos(mousePos);
+    
+    if (draggingId) {
+      const nextX = Math.max(20, Math.min(800 - 80, mousePos.x - dragOffset.x));
+      const nextY = Math.max(20, Math.min(500 - 80, mousePos.y - dragOffset.y));
+      
+      // Snap to 5px grid for tidy schematics
+      const snapGrid = (val: number) => Math.round(val / 5) * 5;
+      
+      setSandboxComponents(prev => prev.map(c => 
+        c.id === draggingId ? { ...c, x: snapGrid(nextX), y: snapGrid(nextY) } : c
+      ));
+    }
+  };
+
+  const handleMouseUp = () => {
+    setDraggingId(null);
+  };
+
+  // Wire Connection Helper: BFS Pathfinder with Resistor Bridging Support
+  const isConnectedTo = useCallback((startId: string, startNode: string, targetId: string, targetNode: string): boolean => {
+    const visited = new Set<string>();
+    const queue: { id: string, node: string }[] = [{ id: startId, node: startNode }];
+    
+    while (queue.length > 0) {
+      const curr = queue.shift()!;
+      const key = `${curr.id}:${curr.node}`;
+      if (visited.has(key)) continue;
+      visited.add(key);
+      
+      if (curr.id === targetId && curr.node === targetNode) {
+        return true;
+      }
+      
+      // Find all wires connected to this pin/node
+      sandboxWires.forEach(w => {
+        let next: { id: string, node: string } | null = null;
+        if (w.from.componentId === curr.id && w.from.nodeName === curr.node) {
+          next = { id: w.to.componentId, node: w.to.nodeName };
+        } else if (w.to.componentId === curr.id && w.to.nodeName === curr.node) {
+          next = { id: w.from.componentId, node: w.from.nodeName };
+        }
+        
+        if (next) {
+          queue.push(next);
+          
+          // If it's a resistor, it bridges termA and termB
+          if (next.id !== 'arduino') {
+            const comp = sandboxComponents.find(c => c.id === next!.id);
+            if (comp && comp.type === 'resistor') {
+              const otherNode = next.node === 'termA' ? 'termB' : 'termA';
+              queue.push({ id: next.id, node: otherNode });
+            }
+          }
+        }
+      });
+    }
+    
+    return false;
+  }, [sandboxWires, sandboxComponents]);
 
   // Main simulation tick loop
   useEffect(() => {
@@ -781,92 +858,180 @@ export function ArduinoSimulator() {
 
     const interval = setInterval(() => {
       setTick(t => t + 1)
-    }, activeProject === 'led' ? 1000 : activeProject === 'semaforo' ? 1000 : 500)
+    }, viewMode === 'sandbox' ? 500 : (activeProject === 'led' ? 1000 : activeProject === 'semaforo' ? 1000 : 500))
 
     return () => clearInterval(interval)
-  }, [isRunning, activeProject])
+  }, [isRunning, activeProject, viewMode])
 
   // Simulation logic per tick
   useEffect(() => {
     if (!isRunning) return
 
-    if (activeProject === 'led') {
-      setLedOn(prev => {
-        const next = !prev
-        addLog(next ? 'digitalWrite(13, HIGH) → LED encendido' : 'digitalWrite(13, LOW) → LED apagado')
-        return next
-      })
-    }
-
-    if (activeProject === 'semaforo') {
-      setPhaseCountdown(prev => {
-        if (prev <= 1) {
-          setSemaforoPhase(ph => {
-            const order: ('rojo' | 'amarillo' | 'verde')[] = ['rojo', 'amarillo', 'verde']
-            const nextPh = order[(order.indexOf(ph) + 1) % 3]
-            addLog(`Cambio → ${nextPh.toUpperCase()} (${phaseTimers[nextPh]}s)`)
-            setPhaseCountdown(phaseTimers[nextPh])
-            return nextPh
-          })
-          return phaseTimers[semaforoPhase]
-        }
-        return prev - 1
-      })
-    }
-
-    if (activeProject === 'temperatura') {
-      addLog(`analogRead(A0) → Temp: ${temperature.toFixed(1)}°C | Fan PWM: ${fanSpeed}`)
-    }
-
-    if (activeProject === 'servo') {
-      // Map potentiometer to servo angle
-      const targetAngle = Math.round((potValue / 1023) * 180)
-      setServoAngle(targetAngle)
-      addLog(`analogRead(A0) = ${potValue} | myservo.write(${targetAngle}°)`)
-    }
-
-    if (activeProject === 'ultrasonido') {
-      if (parkDistance < 15) {
-        setBuzzerActive(true)
-        addLog(`Distancia crítica: ${parkDistance}cm | tone(3, 1000) CONTINUO`)
-      } else if (parkDistance < 50) {
-        setBuzzerActive(prev => {
+    // ─── Guided Projects Simulation ───
+    if (viewMode === 'guided') {
+      if (activeProject === 'led') {
+        setLedOn(prev => {
           const next = !prev
-          if (next) {
-            addLog(`Obstáculo cercano: ${parkDistance}cm | tone(3, 1000, 80) PITIDO`)
-          }
+          addLog(next ? 'digitalWrite(13, HIGH) → LED encendido' : 'digitalWrite(13, LOW) → LED apagado')
           return next
         })
-      } else {
-        setBuzzerActive(false)
-        addLog(`Distancia segura: ${parkDistance}cm | noTone(3)`)
+      }
+
+      if (activeProject === 'semaforo') {
+        setPhaseCountdown(prev => {
+          if (prev <= 1) {
+            setSemaforoPhase(ph => {
+              const order: ('rojo' | 'amarillo' | 'verde')[] = ['rojo', 'amarillo', 'verde']
+              const nextPh = order[(order.indexOf(ph) + 1) % 3]
+              addLog(`Cambio → ${nextPh.toUpperCase()} (${phaseTimers[nextPh]}s)`)
+              setPhaseCountdown(phaseTimers[nextPh])
+              return nextPh
+            })
+            return phaseTimers[semaforoPhase]
+          }
+          return prev - 1
+        })
+      }
+
+      if (activeProject === 'temperatura') {
+        addLog(`analogRead(A0) → Temp: ${temperature.toFixed(1)}°C | Fan PWM: ${fanSpeed}`)
+      }
+
+      if (activeProject === 'servo') {
+        const targetAngle = Math.round((potValue / 1023) * 180)
+        setServoAngle(targetAngle)
+        addLog(`analogRead(A0) = ${potValue} | myservo.write(${targetAngle}°)`)
+      }
+
+      if (activeProject === 'ultrasonido') {
+        if (parkDistance < 15) {
+          setBuzzerActive(true)
+          addLog(`Distancia crítica: ${parkDistance}cm | tone(3, 1000) CONTINUO`)
+        } else if (parkDistance < 50) {
+          setBuzzerActive(prev => {
+            const next = !prev
+            if (next) {
+              addLog(`Obstáculo cercano: ${parkDistance}cm | tone(3, 1000, 80) PITIDO`)
+            }
+            return next
+          })
+        } else {
+          setBuzzerActive(false)
+          addLog(`Distancia segura: ${parkDistance}cm | noTone(3)`)
+        }
       }
     }
 
-    if (activeProject === 'sandbox') {
-      // Sandbox interactive simulation loop
-      // Check if we have a Pot and a Servo, link them dynamically!
-      const potComp = sandboxComponents.find(c => c.type === 'pot')
-      const servoComp = sandboxComponents.find(c => c.type === 'servo')
-      const ledComp = sandboxComponents.find(c => c.type === 'led')
-      const buzzerComp = sandboxComponents.find(c => c.type === 'buzzer')
-
-      if (potComp && servoComp) {
-        const val = Number(potComp.state || 0)
-        const angle = Math.round((val / 1023) * 180)
-        setSandboxComponents(prev => prev.map(c => c.type === 'servo' ? { ...c, state: angle } : c))
-        addLog(`Sandbox Link: POT (${val}) → SERVO (${angle}°)`)
+    // ─── Interactive Sandbox Simulation ───
+    if (viewMode === 'sandbox') {
+      let pinStatesUpdate: Record<string, number> = {
+        '5V': 1,
+        'GND_D': 0,
+        'GND_P': 0
+      };
+      
+      // Read Inputs (Pushbutton)
+      const buttonComp = sandboxComponents.find(c => c.type === 'button');
+      if (buttonComp && buttonComp.state === true) {
+        const connectsTo5V = isConnectedTo(buttonComp.id, 'termA', 'arduino', '5V') || isConnectedTo(buttonComp.id, 'termB', 'arduino', '5V');
+        const connectsToPin2 = isConnectedTo(buttonComp.id, 'termA', 'arduino', '2') || isConnectedTo(buttonComp.id, 'termB', 'arduino', '2');
+        if (connectsTo5V && connectsToPin2) {
+          pinStatesUpdate['2'] = 1;
+        }
       }
-
-      if (ledComp) {
-        setSandboxComponents(prev => prev.map(c => c.type === 'led' ? { ...c, state: !c.state } : c))
-        addLog(`Sandbox: Alternando estado de LED en Pin ${ledComp.pin}`)
+      
+      // Read Inputs (Potentiometer)
+      const potComp = sandboxComponents.find(c => c.type === 'pot');
+      if (potComp) {
+        const connectsTo5V = isConnectedTo(potComp.id, 'vcc', 'arduino', '5V');
+        const connectsToGND = isConnectedTo(potComp.id, 'gnd', 'arduino', 'GND_P') || isConnectedTo(potComp.id, 'gnd', 'arduino', 'GND_D');
+        const connectsToA0 = isConnectedTo(potComp.id, 'wiper', 'arduino', 'A0');
+        if (connectsTo5V && connectsToGND && connectsToA0) {
+          pinStatesUpdate['A0'] = Number(potComp.state || 0);
+        }
       }
-
-      if (buzzerComp) {
-        setSandboxComponents(prev => prev.map(c => c.type === 'buzzer' ? { ...c, state: !c.state } : c))
-        addLog(`Sandbox: Alternando estado de Zumbador en Pin ${buzzerComp.pin}`)
+      
+      // Apply preset sketches logic
+      if (sandboxSketch === 'blink') {
+        const blinkVal = tick % 2 === 0 ? 1 : 0;
+        pinStatesUpdate['13'] = blinkVal;
+        addLog(`[Arduino Presets] digitalWrite(13, ${blinkVal ? 'HIGH' : 'LOW'})`);
+      } else if (sandboxSketch === 'pot-servo') {
+        const a0Val = pinStatesUpdate['A0'] || 0;
+        const angle = Math.round((a0Val / 1023) * 180);
+        pinStatesUpdate['9'] = angle;
+        addLog(`[Arduino Presets] analogRead(A0) = ${a0Val} | myservo.write(${angle}°)`);
+      } else if (sandboxSketch === 'button-led') {
+        const pin2Val = pinStatesUpdate['2'] || 0;
+        pinStatesUpdate['13'] = pin2Val;
+        addLog(`[Arduino Presets] digitalRead(2) = ${pin2Val ? 'HIGH' : 'LOW'} | digitalWrite(13, ${pin2Val ? 'HIGH' : 'LOW'})`);
+      } else if (sandboxSketch === 'pot-buzzer') {
+        const a0Val = pinStatesUpdate['A0'] || 0;
+        const buzzerOn = a0Val > 600 ? 1 : 0;
+        pinStatesUpdate['3'] = buzzerOn;
+        addLog(`[Arduino Presets] analogRead(A0) = ${a0Val} | digitalWrite(3, ${buzzerOn ? 'HIGH' : 'LOW'})`);
+      } else {
+        // Monitor general
+        addLog(`[Arduino Monitor] A0: ${pinStatesUpdate['A0'] || 0} | Pin 2: ${pinStatesUpdate['2'] || 0} | Pin 13: ${pinStatesUpdate['13'] || 0}`);
       }
+      
+      // Propagate signals to output components
+      setSandboxComponents(prev => prev.map(c => {
+        if (c.type === 'led') {
+          let isPowered = false;
+          let connectedPin = null;
+          
+          for (let p = 2; p <= 13; p++) {
+            if (isConnectedTo(c.id, 'anode', 'arduino', String(p))) {
+              connectedPin = String(p);
+              if (pinStatesUpdate[connectedPin] >= 1) {
+                isPowered = true;
+                break;
+              }
+            }
+          }
+          
+          const isGrounded = isConnectedTo(c.id, 'cathode', 'arduino', 'GND_D') || isConnectedTo(c.id, 'cathode', 'arduino', 'GND_P');
+          return { ...c, state: isPowered && isGrounded };
+        }
+        
+        if (c.type === 'buzzer') {
+          let isPowered = false;
+          for (let p = 2; p <= 13; p++) {
+            if (isConnectedTo(c.id, 'pos', 'arduino', String(p))) {
+              if (pinStatesUpdate[String(p)] >= 1) {
+                isPowered = true;
+                break;
+              }
+            }
+          }
+          const isGrounded = isConnectedTo(c.id, 'neg', 'arduino', 'GND_D') || isConnectedTo(c.id, 'neg', 'arduino', 'GND_P');
+          return { ...c, state: isPowered && isGrounded };
+        }
+        
+        if (c.type === 'servo') {
+          let signalAngle = 90;
+          let isConnectedToSignal = false;
+          const pwmPins = ['3', '5', '6', '9', '10', '11'];
+          for (const p of pwmPins) {
+            if (isConnectedTo(c.id, 'sig', 'arduino', p)) {
+              signalAngle = pinStatesUpdate[p] !== undefined ? pinStatesUpdate[p] : 90;
+              isConnectedToSignal = true;
+              break;
+            }
+          }
+          
+          const isPowered = isConnectedTo(c.id, 'vcc', 'arduino', '5V');
+          const isGrounded = isConnectedTo(c.id, 'gnd', 'arduino', 'GND_D') || isConnectedTo(c.id, 'gnd', 'arduino', 'GND_P');
+          
+          if (isPowered && isGrounded && isConnectedToSignal) {
+            const finalAngle = signalAngle === 1 ? 180 : signalAngle === 0 ? 0 : signalAngle;
+            return { ...c, state: finalAngle };
+          }
+        }
+        
+        return c;
+      }));
     }
   }, [tick]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -890,488 +1055,1016 @@ export function ArduinoSimulator() {
     setParkDistance(75)
     setBuzzerActive(false)
     setTick(0)
-    if (activeProject === 'sandbox') {
-      setSandboxComponents(prev => prev.map(c => ({ ...c, state: c.type === 'led' || c.type === 'buzzer' ? false : c.type === 'servo' ? 90 : 512 })))
+    setWireStart(null)
+    if (viewMode === 'sandbox') {
+      setSandboxComponents(prev => prev.map(c => ({
+        ...c,
+        state: c.type === 'led' || c.type === 'buzzer' || c.type === 'button' ? false : c.type === 'servo' ? 90 : 512
+      })))
+      addLog('⟳ Circuito restablecido.')
+    } else {
+      addLog('⟳ Sistema guiado reiniciado.')
     }
-    addLog('⟳ Sistema reiniciado.')
   }
 
-  // Sandbox management actions
+  // Visual Sandbox actions
   const addSandboxComponent = () => {
-    if (sandboxComponents.length >= 4) {
-      addLog('[Error] Límite de 4 piezas alcanzado en el tablero de pruebas.')
+    if (sandboxComponents.length >= 6) {
+      addLog('[Error] Límite de 6 piezas alcanzado en el tablero.')
       return
     }
-    const alreadyHas = sandboxComponents.some(c => c.type === sandboxSelectType && c.pin === sandboxSelectPin)
-    if (alreadyHas) {
-      addLog(`[Error] Ya hay un componente conectado al pin ${sandboxSelectPin}.`)
-      return
-    }
-
+    
+    const count = sandboxComponents.length;
     const newComp: SandboxComponent = {
       id: Math.random().toString(),
       type: sandboxSelectType,
-      pin: sandboxSelectPin,
+      x: 340 + (count * 40) % 200,
+      y: 120 + (count * 40) % 200,
       color: sandboxSelectType === 'led' ? sandboxSelectColor : undefined,
-      state: sandboxSelectType === 'led' || sandboxSelectType === 'buzzer' ? false : sandboxSelectType === 'servo' ? 90 : 512
-    }
-    setSandboxComponents(prev => [...prev, newComp])
-    addLog(`[Tablero] Pieza añadida: ${sandboxSelectType.toUpperCase()} en Pin ${sandboxSelectPin}`)
+      state: sandboxSelectType === 'led' || sandboxSelectType === 'buzzer' || sandboxSelectType === 'button' ? false : sandboxSelectType === 'servo' ? 90 : 512
+    };
+
+    setSandboxComponents(prev => [...prev, newComp]);
+    addLog(`[Tablero] Pieza añadida: ${sandboxSelectType.toUpperCase()}`);
   }
 
   const removeSandboxComponent = (id: string) => {
-    setSandboxComponents(prev => {
-      const target = prev.find(c => c.id === id)
-      if (target) {
-        addLog(`[Tablero] Pieza eliminada: ${target.type.toUpperCase()}`)
+    setSandboxComponents(prev => prev.filter(c => c.id !== id));
+    setSandboxWires(prev => prev.filter(w => w.from.componentId !== id && w.to.componentId !== id));
+    addLog(`[Tablero] Pieza eliminada.`);
+  }
+
+  const handleNodeClick = (e: React.MouseEvent, componentId: string, nodeName: string) => {
+    e.stopPropagation();
+    e.preventDefault();
+    
+    if (!wireStart) {
+      setWireStart({ componentId, nodeName });
+      addLog(`[Cableado] Origen seleccionado: Pin ${nodeName}. Seleccione destino.`);
+    } else {
+      if (wireStart.componentId === componentId && wireStart.nodeName === nodeName) {
+        setWireStart(null);
+        return;
       }
-      return prev.filter(c => c.id !== id)
-    })
+      
+      const newWire: SandboxWire = {
+        id: Math.random().toString(),
+        from: wireStart,
+        to: { componentId, nodeName },
+        color: wireColor
+      };
+      
+      setSandboxWires(prev => [...prev, newWire]);
+      setWireStart(null);
+      addLog(`[Cableado] Conexión: ${wireStart.nodeName} ── ${nodeName}`);
+    }
+  };
+
+  const saveCircuit = () => {
+    localStorage.setItem('amc_arduino_sandbox_circuit_v2', JSON.stringify({ components: sandboxComponents, wires: sandboxWires }));
+    addLog('[LocalStorage] Circuito guardado correctamente.');
   }
 
-  const updateSandboxPotValue = (id: string, val: number) => {
-    setSandboxComponents(prev => prev.map(c => c.id === id ? { ...c, state: val } : c))
-    if (!isRunning) {
-      addLog(`[Hardware] Potenciómetro ajustado a ${val}`)
+  const loadCircuit = () => {
+    const data = localStorage.getItem('amc_arduino_sandbox_circuit_v2');
+    if (data) {
+      try {
+        const parsed = JSON.parse(data);
+        setSandboxComponents(parsed.components || []);
+        setSandboxWires(parsed.wires || []);
+        addLog('[LocalStorage] Circuito cargado correctamente.');
+      } catch (err) {
+        addLog('[Error] No se pudo cargar el circuito.');
+      }
+    } else {
+      addLog('[LocalStorage] No hay circuito guardado.');
     }
   }
 
-  const updateSandboxServoAngle = (id: string, angle: number) => {
-    setSandboxComponents(prev => prev.map(c => c.id === id ? { ...c, state: angle } : c))
-    if (!isRunning) {
-      addLog(`[Hardware] Servo girado a ${angle}°`)
-    }
+  const clearCircuit = () => {
+    setSandboxComponents([]);
+    setSandboxWires([]);
+    setWireStart(null);
+    addLog('[Tablero] Workbench limpio.');
   }
 
-  const toggleSandboxDigitalComponent = (id: string) => {
-    setSandboxComponents(prev => prev.map(c => c.id === id ? { ...c, state: !c.state } : c))
-    const item = sandboxComponents.find(c => c.id === id)
-    if (item) {
-      addLog(`[Hardware] Pin ${item.pin} cambiado manualmente`)
-    }
-  }
+  // Visual Node Render helper
+  const renderNode = (compId: string, nodeName: string, cx: number, cy: number, label: string) => {
+    const isStart = wireStart && wireStart.componentId === compId && wireStart.nodeName === nodeName;
+    const isHovered = hoverNode === `${compId}:${nodeName}`;
+    
+    return (
+      <g 
+        onMouseEnter={() => setHoverNode(`${compId}:${nodeName}`)}
+        onMouseLeave={() => setHoverNode(null)}
+        onClick={(e) => handleNodeClick(e, compId, nodeName)}
+        className="cursor-pointer"
+      >
+        <circle 
+          cx={cx} 
+          cy={cy} 
+          r={isStart ? 9 : isHovered ? 7 : 5} 
+          fill={isStart ? 'rgba(59, 130, 246, 0.4)' : isHovered ? 'rgba(16, 185, 129, 0.3)' : 'rgba(0,0,0,0.4)'} 
+          stroke={isStart ? '#3b82f6' : isHovered ? '#10b981' : '#94a3b8'}
+          strokeWidth="1.2"
+          className={isStart ? 'animate-pulse' : ''}
+          style={{ transition: 'r 0.15s ease' }}
+        />
+        <circle 
+          cx={cx} 
+          cy={cy} 
+          r="2" 
+          fill={isStart ? '#3b82f6' : isHovered ? '#10b981' : '#ffffff'} 
+        />
+        {isHovered && (
+          <g transform={`translate(${cx}, ${cy - 12})`}>
+            <rect x="-35" y="-10" width="70" height="13" rx="2" fill="#1e293b" stroke="#475569" strokeWidth="0.5" />
+            <text x="0" y="-1" textAnchor="middle" fill="#f8fafc" fontSize="7" fontFamily="monospace">{label}</text>
+          </g>
+        )}
+      </g>
+    );
+  };
 
-  const activeProjectData = PROJECTS.find(p => p.id === activeProject)!
-
-  // Sync sandbox pins based on component selected
-  useEffect(() => {
-    if (sandboxSelectType === 'led' || sandboxSelectType === 'buzzer') {
-      setSandboxSelectPin('13')
-    } else if (sandboxSelectType === 'servo') {
-      setSandboxSelectPin('9')
-    } else if (sandboxSelectType === 'pot') {
-      setSandboxSelectPin('A0')
-    }
-  }, [sandboxSelectType])
+  const activeProjectData = PROJECTS.find(p => p.id === activeProject) || PROJECTS[0]
 
   return (
     <div className="space-y-6 animate-fade-in-up">
-      {/* Project Selector Tabs */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
-        {PROJECTS.map(({ id, name, icon: Icon, color, borderColor, badgeBg, desc }) => {
-          const isActive = activeProject === id
-          return (
-            <button
-              key={id}
-              onClick={() => setActiveProject(id)}
-              className={`text-left p-3.5 rounded-xl border transition-all duration-200 group flex flex-col justify-between ${
-                isActive
-                  ? `${borderColor} ${badgeBg} ${color} shadow-lg shadow-emerald-500/5`
-                  : 'border-border/50 bg-card/30 text-muted-foreground hover:border-border hover:text-foreground'
-              }`}
-            >
-              <div className="flex items-center gap-2 mb-1.5 min-w-0">
-                <Icon size={16} className={isActive ? color : 'opacity-60 flex-shrink-0'} />
-                <span className="text-xs font-bold truncate">{name}</span>
-              </div>
-              <p className="text-[10px] opacity-70 leading-normal line-clamp-2 mt-1">{desc}</p>
-            </button>
-          )
-        })}
+      {/* Major View Mode Selector Tabs */}
+      <div className="flex border-b border-border/40">
+        <button
+          onClick={() => setViewMode('guided')}
+          className={`px-6 py-3 text-sm font-mono font-bold transition-all border-b-2 cursor-pointer ${
+            viewMode === 'guided' 
+              ? 'border-primary text-primary' 
+              : 'border-transparent text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          Proyectos Guiados (LM35, Servo, Semáforo...)
+        </button>
+        <button
+          onClick={() => setViewMode('sandbox')}
+          className={`px-6 py-3 text-sm font-mono font-bold transition-all border-b-2 cursor-pointer ${
+            viewMode === 'sandbox' 
+              ? 'border-primary text-primary' 
+              : 'border-transparent text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          Laboratorio Visual Sandbox (Cableado SVG)
+        </button>
       </div>
 
-      {/* Main Workspace */}
-      <div className="grid gap-6 lg:grid-cols-12">
-        {/* Circuit Display & Sliders Panel (Col 5) */}
-        <div className="lg:col-span-5 space-y-4">
-          <div className="rounded-xl border border-border/50 bg-card/25 glass-panel overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-2.5 border-b border-border/40 bg-background/60">
-              <div className="flex items-center gap-2">
-                <CircuitBoard size={14} className={activeProjectData.color} />
-                <span className="text-xs font-mono font-semibold text-foreground">CIRC. SIMULADO</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className={`w-2 h-2 rounded-full ${isRunning ? 'bg-emerald-500 animate-pulse' : 'bg-muted-foreground/40'}`} />
-                <span className="text-[10px] font-mono text-muted-foreground/60 uppercase">
-                  {isRunning ? 'ACTIVO' : 'PAUSADO'}
-                </span>
-              </div>
-            </div>
-            <div className="p-4 aspect-[4/3] flex items-center justify-center bg-gradient-to-br from-slate-900/65 to-slate-950/85">
-              {activeProject === 'led' && <LedCircuit ledOn={ledOn} />}
-              {activeProject === 'semaforo' && <SemaforoCircuit activeLight={isRunning ? semaforoPhase : null} />}
-              {activeProject === 'temperatura' && <TemperaturaCircuit temperature={temperature} fanSpeed={isRunning ? fanSpeed : 0} />}
-              {activeProject === 'servo' && <ServoCircuit angle={servoAngle} potVal={potValue} />}
-              {activeProject === 'ultrasonido' && <UltrasonicoCircuit distance={parkDistance} isBuzzerActive={isRunning && buzzerActive} />}
-              {activeProject === 'sandbox' && (
-                <SandboxCircuit
-                  components={sandboxComponents}
-                  onPotChange={updateSandboxPotValue}
-                  onServoChange={updateSandboxServoAngle}
-                />
-              )}
-            </div>
+      {viewMode === 'guided' ? (
+        // ─── GUIDED PROJECTS MODE ───
+        <div className="space-y-6">
+          {/* Grid selector */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            {PROJECTS.map(({ id, name, icon: Icon, color, borderColor, badgeBg, desc }) => {
+              const isActive = activeProject === id
+              return (
+                <button
+                  key={id}
+                  onClick={() => setActiveProject(id)}
+                  className={`text-left p-3.5 rounded-xl border transition-all duration-200 group flex flex-col justify-between cursor-pointer ${
+                    isActive
+                      ? `${borderColor} ${badgeBg} ${color} shadow-lg shadow-emerald-500/5`
+                      : 'border-border/50 bg-card/30 text-muted-foreground hover:border-border hover:text-foreground'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-1.5 min-w-0">
+                    <Icon size={16} className={isActive ? color : 'opacity-60 flex-shrink-0'} />
+                    <span className="text-xs font-bold truncate">{name}</span>
+                  </div>
+                  <p className="text-[10px] opacity-70 leading-normal line-clamp-2 mt-1">{desc}</p>
+                </button>
+              )
+            })}
           </div>
 
-          {/* Interactive controls based on loaded project */}
-          {activeProject === 'temperatura' && (
-            <div className="rounded-xl border border-border/50 bg-card/25 glass-panel p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground">
-                  <Thermometer size={14} className="text-cyan-400" />
-                  <span>TEMPERATURA LM35</span>
-                </div>
-                <span className="font-mono text-sm font-bold text-cyan-400">{temperature}°C</span>
-              </div>
-              <input
-                type="range"
-                min="15" max="55"
-                value={temperature}
-                onChange={e => setTemperature(Number(e.target.value))}
-                className="w-full h-2 rounded-full accent-cyan-500 cursor-pointer"
-              />
-              <div className="flex justify-between text-[9px] font-mono text-muted-foreground/50">
-                <span>15°C (frío)</span>
-                <span className="text-amber-400">30°C (umbral)</span>
-                <span className="text-rose-400">55°C (caliente)</span>
-              </div>
-            </div>
-          )}
-
-          {activeProject === 'servo' && (
-            <div className="rounded-xl border border-border/50 bg-card/25 glass-panel p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground">
-                  <Sliders size={14} className="text-indigo-400" />
-                  <span>POTENCIÓMETRO ANALÓGICO</span>
-                </div>
-                <span className="font-mono text-sm font-bold text-indigo-400">{potValue} (ADC)</span>
-              </div>
-              <input
-                type="range"
-                min="0" max="1023"
-                value={potValue}
-                onChange={e => setPotValue(Number(e.target.value))}
-                className="w-full h-2 rounded-full accent-indigo-500 cursor-pointer"
-              />
-              <div className="flex justify-between text-[9px] font-mono text-muted-foreground/50">
-                <span>0V (0)</span>
-                <span>2.5V (512)</span>
-                <span>5V (1023)</span>
-              </div>
-            </div>
-          )}
-
-          {activeProject === 'ultrasonido' && (
-            <div className="rounded-xl border border-border/50 bg-card/25 glass-panel p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground">
-                  <Activity size={14} className="text-rose-400" />
-                  <span>DISTANCIA AL SENSOR</span>
-                </div>
-                <span className="font-mono text-sm font-bold text-rose-400">{parkDistance} cm</span>
-              </div>
-              <input
-                type="range"
-                min="2" max="150"
-                value={parkDistance}
-                onChange={e => setParkDistance(Number(e.target.value))}
-                className="w-full h-2 rounded-full accent-rose-500 cursor-pointer"
-              />
-              <div className="flex justify-between text-[9px] font-mono text-muted-foreground/50">
-                <span className="text-rose-500 font-bold">2cm (CRÍTICO)</span>
-                <span className="text-amber-500">50cm (CERCANO)</span>
-                <span>150cm (SEGURO)</span>
-              </div>
-            </div>
-          )}
-
-          {/* Controls for Sandbox Components Placed */}
-          {activeProject === 'sandbox' && sandboxComponents.length > 0 && (
-            <div className="rounded-xl border border-border/50 bg-card/25 glass-panel p-4 space-y-3.5">
-              <h4 className="text-xs font-bold text-white border-b border-border/30 pb-1.5 flex items-center gap-2">
-                <Sliders size={13} className="text-purple-400" />
-                CONTROLES FÍSICOS DE PIEZAS
-              </h4>
-              <div className="space-y-3 max-h-[160px] overflow-y-auto pr-1">
-                {sandboxComponents.map(c => (
-                  <div key={c.id} className="p-2.5 rounded-lg border border-border/40 bg-background/50 flex flex-col gap-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-mono font-bold text-white uppercase flex items-center gap-1.5">
-                        {c.type === 'led' && <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />}
-                        {c.type.toUpperCase()} en Pin {c.pin}
-                      </span>
-                      <button onClick={() => removeSandboxComponent(c.id)} className="text-muted-foreground/45 hover:text-rose-400 transition-colors">
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-
-                    {c.type === 'pot' && (
-                      <div className="space-y-1">
-                        <input
-                          type="range" min="0" max="1023"
-                          value={Number(c.state || 0)}
-                          onChange={e => updateSandboxPotValue(c.id, Number(e.target.value))}
-                          className="w-full h-1.5 rounded accent-emerald-500 cursor-pointer"
-                        />
-                        <div className="flex justify-between text-[8px] font-mono text-muted-foreground/60">
-                          <span>0</span>
-                          <span>Valor: {c.state}</span>
-                          <span>1023</span>
-                        </div>
-                      </div>
-                    )}
-
-                    {c.type === 'servo' && (
-                      <div className="space-y-1">
-                        <input
-                          type="range" min="0" max="180"
-                          value={Number(c.state || 90)}
-                          onChange={e => updateSandboxServoAngle(c.id, Number(e.target.value))}
-                          className="w-full h-1.5 rounded accent-indigo-500 cursor-pointer"
-                        />
-                        <div className="flex justify-between text-[8px] font-mono text-muted-foreground/60">
-                          <span>0°</span>
-                          <span>Ángulo: {c.state}°</span>
-                          <span>180°</span>
-                        </div>
-                      </div>
-                    )}
-
-                    {(c.type === 'led' || c.type === 'buzzer') && (
-                      <div className="flex items-center justify-between pt-0.5">
-                        <span className="text-[9px] text-muted-foreground">Estado Manual:</span>
-                        <button
-                          onClick={() => toggleSandboxDigitalComponent(c.id)}
-                          className={`px-3 py-0.5 rounded text-[9px] font-mono font-bold uppercase transition-all ${
-                            c.state
-                              ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400'
-                              : 'bg-muted/30 border border-border/50 text-muted-foreground'
-                          }`}
-                        >
-                          {c.state ? 'HIGH (5V)' : 'LOW (0V)'}
-                        </button>
-                      </div>
-                    )}
+          <div className="grid gap-6 lg:grid-cols-12">
+            {/* Left Side: Circuit Display and controls (Col 5) */}
+            <div className="lg:col-span-5 space-y-4">
+              <div className="rounded-xl border border-border/50 bg-card/25 glass-panel overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-2.5 border-b border-border/40 bg-background/60">
+                  <div className="flex items-center gap-2">
+                    <CircuitBoard size={14} className={activeProjectData.color} />
+                    <span className="text-xs font-mono font-semibold text-foreground">CIRC. SIMULADO</span>
                   </div>
-                ))}
+                  <div className="flex items-center gap-1.5">
+                    <div className={`w-2 h-2 rounded-full ${isRunning ? 'bg-emerald-500 animate-pulse' : 'bg-muted-foreground/40'}`} />
+                    <span className="text-[10px] font-mono text-muted-foreground/60 uppercase">
+                      {isRunning ? 'ACTIVO' : 'PAUSADO'}
+                    </span>
+                  </div>
+                </div>
+                <div className="p-4 aspect-[4/3] flex items-center justify-center bg-gradient-to-br from-slate-900/65 to-slate-950/85">
+                  {activeProject === 'led' && <LedCircuit ledOn={ledOn} />}
+                  {activeProject === 'semaforo' && <SemaforoCircuit activeLight={isRunning ? semaforoPhase : null} />}
+                  {activeProject === 'temperatura' && <TemperaturaCircuit temperature={temperature} fanSpeed={isRunning ? fanSpeed : 0} />}
+                  {activeProject === 'servo' && <ServoCircuit angle={servoAngle} potVal={potValue} />}
+                  {activeProject === 'ultrasonido' && <UltrasonicoCircuit distance={parkDistance} isBuzzerActive={isRunning && buzzerActive} />}
+                </div>
+              </div>
+
+              {/* Sliders and custom sliders */}
+              {activeProject === 'temperatura' && (
+                <div className="rounded-xl border border-border/50 bg-card/25 glass-panel p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground">
+                      <Sliders size={14} className="text-cyan-400" />
+                      <span>TEMPERATURA LM35</span>
+                    </div>
+                    <span className="font-mono text-sm font-bold text-cyan-400">{temperature}°C</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="15" max="55"
+                    value={temperature}
+                    onChange={e => setTemperature(Number(e.target.value))}
+                    className="w-full h-2 rounded-full accent-cyan-500 cursor-pointer"
+                  />
+                  <div className="flex justify-between text-[9px] font-mono text-muted-foreground/50">
+                    <span>15°C (frío)</span>
+                    <span className="text-amber-400">30°C (umbral)</span>
+                    <span className="text-rose-400">55°C (caliente)</span>
+                  </div>
+                </div>
+              )}
+
+              {activeProject === 'servo' && (
+                <div className="rounded-xl border border-border/50 bg-card/25 glass-panel p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground">
+                      <Sliders size={14} className="text-indigo-400" />
+                      <span>POTENCIÓMETRO ANALÓGICO</span>
+                    </div>
+                    <span className="font-mono text-sm font-bold text-indigo-400">{potValue} (ADC)</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0" max="1023"
+                    value={potValue}
+                    onChange={e => setPotValue(Number(e.target.value))}
+                    className="w-full h-2 rounded-full accent-indigo-500 cursor-pointer"
+                  />
+                  <div className="flex justify-between text-[9px] font-mono text-muted-foreground/50">
+                    <span>0V (0)</span>
+                    <span>2.5V (512)</span>
+                    <span>5V (1023)</span>
+                  </div>
+                </div>
+              )}
+
+              {activeProject === 'ultrasonido' && (
+                <div className="rounded-xl border border-border/50 bg-card/25 glass-panel p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground">
+                      <Activity size={14} className="text-rose-400" />
+                      <span>DISTANCIA AL SENSOR</span>
+                    </div>
+                    <span className="font-mono text-sm font-bold text-rose-400">{parkDistance} cm</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="2" max="150"
+                    value={parkDistance}
+                    onChange={e => setParkDistance(Number(e.target.value))}
+                    className="w-full h-2 rounded-full accent-rose-500 cursor-pointer"
+                  />
+                  <div className="flex justify-between text-[9px] font-mono text-muted-foreground/50">
+                    <span className="text-rose-500 font-bold">2cm (CRÍTICO)</span>
+                    <span className="text-amber-500">50cm (CERCANO)</span>
+                    <span>150cm (SEGURO)</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Execution Buttons */}
+              <div className="flex gap-2">
+                {!isRunning ? (
+                  <button
+                    onClick={handleStart}
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-sm font-mono font-bold hover:bg-emerald-500/20 transition-all cursor-pointer shadow-lg shadow-emerald-500/5"
+                  >
+                    <Play size={15} />
+                    Ejecutar Sketch
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleStop}
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 text-sm font-mono font-bold hover:bg-amber-500/20 transition-all cursor-pointer shadow-lg shadow-amber-500/5"
+                  >
+                    <Pause size={15} />
+                    Pausar Código
+                  </button>
+                )}
+                <button
+                  onClick={handleReset}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-rose-500/8 border border-rose-500/25 text-rose-400 text-sm font-mono font-bold hover:bg-rose-500/15 transition-all cursor-pointer"
+                >
+                  <RotateCcw size={15} />
+                  Reset
+                </button>
               </div>
             </div>
-          )}
 
-          {/* Control Execution Buttons */}
-          <div className="flex gap-2">
-            {!isRunning ? (
-              <button
-                onClick={handleStart}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-sm font-mono font-bold hover:bg-emerald-500/20 transition-all cursor-pointer shadow-lg shadow-emerald-500/5"
-              >
-                <Play size={15} />
-                Ejecutar Sketch
-              </button>
-            ) : (
-              <button
-                onClick={handleStop}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 text-sm font-mono font-bold hover:bg-amber-500/20 transition-all cursor-pointer shadow-lg shadow-amber-500/5"
-              >
-                <Pause size={15} />
-                Pausar Código
-              </button>
-            )}
-            <button
-              onClick={handleReset}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-rose-500/8 border border-rose-500/25 text-rose-400 text-sm font-mono font-bold hover:bg-rose-500/15 transition-all cursor-pointer"
-            >
-              <RotateCcw size={15} />
-              Reset
-            </button>
+            {/* Right Side: Code editor and monitor (Col 7) */}
+            <div className="lg:col-span-7 space-y-4">
+              <div className="rounded-xl border border-border/50 bg-card/25 glass-panel overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-2.5 border-b border-border/40 bg-background/60">
+                  <div className="flex items-center gap-2">
+                    <Code2 size={14} className={activeProjectData.color} />
+                    <span className="text-xs font-mono font-semibold text-foreground">
+                      {activeProject.toUpperCase()}_SKETCH.ino
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-rose-500/60" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500/60" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/60" />
+                  </div>
+                </div>
+                <div className="overflow-y-auto max-h-[280px] bg-black/70 font-mono text-[11px]">
+                  {CODE[activeProject]?.lines.map((line, i) => (
+                    <div
+                      key={i}
+                      className="flex items-start hover:bg-white/3 transition-colors px-1"
+                    >
+                      <span className="w-8 text-right pr-3 py-0.5 text-muted-foreground/30 select-none flex-shrink-0">
+                        {i + 1}
+                      </span>
+                      <span className="py-0.5 flex-1">
+                        <span className="text-zinc-200 whitespace-pre">{line.code}</span>
+                        {line.comment && (
+                          <span className="text-muted-foreground/55 ml-1">{line.comment}</span>
+                        )}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Serial Console logs */}
+              <div className="rounded-xl border border-border/50 bg-card/25 glass-panel overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-2 border-b border-border/40 bg-background/60">
+                  <div className="flex items-center gap-2">
+                    <Zap size={13} className="text-primary" />
+                    <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">
+                      Monitor Serial — 9600 baud
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setLogs([])}
+                    className="text-[10px] font-mono text-muted-foreground/50 hover:text-muted-foreground transition-colors cursor-pointer"
+                  >
+                    Limpiar
+                  </button>
+                </div>
+                <div ref={logsContainerRef} className="bg-black/80 p-3 h-36 overflow-y-auto font-mono text-[10px] space-y-0.5">
+                  {logs.map((log, i) => (
+                    <div key={i} className={`${log.startsWith('[Sistema]') ? 'text-muted-foreground/50' : log.includes('[Error]') ? 'text-rose-400' : 'text-emerald-400'}`}>
+                      {log}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className={`rounded-xl border ${activeProjectData.borderColor} ${activeProjectData.badgeBg} p-4 flex items-start gap-3`}>
+                <Info size={16} className={`${activeProjectData.color} flex-shrink-0 mt-0.5`} />
+                <div className="text-xs">
+                  <p className={`font-semibold ${activeProjectData.color} mb-1`}>{activeProjectData.name}</p>
+                  <p className="text-muted-foreground leading-relaxed">{activeProjectData.desc}</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-
-        {/* Component Picker / Code + Console (Col 7) */}
-        <div className="lg:col-span-7 space-y-4">
-          {/* Sandbox Component Placement Panel */}
-          {activeProject === 'sandbox' && (
-            <div className="rounded-xl border border-border/50 bg-card/25 p-5 glass-panel space-y-4">
-              <div className="flex items-center gap-2 text-xs font-mono font-bold text-white">
+      ) : (
+        // ─── VISUAL SANDBOX WORKSPACE MODE ───
+        <div className="grid gap-6 lg:grid-cols-12 items-start">
+          {/* Control Sidebar for Sandbox Component management (Col 4) */}
+          <div className="lg:col-span-4 space-y-4">
+            <div className="rounded-xl border border-border/60 bg-card/25 p-5 glass-panel space-y-4">
+              <h3 className="font-mono text-xs text-muted-foreground uppercase tracking-widest pl-0.5 flex items-center gap-1.5">
                 <Plus size={14} className="text-purple-400" />
-                AÑADIR PIEZAS AL TABLERO DE PRUEBAS
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                Añadir Componentes
+              </h3>
+              
+              <div className="space-y-3">
                 <div>
-                  <label className="block text-[10px] font-mono text-muted-foreground uppercase mb-1">Componente</label>
+                  <label className="block text-[10px] font-mono text-muted-foreground uppercase mb-1">Pieza Electrónica</label>
                   <select
                     value={sandboxSelectType}
                     onChange={e => setSandboxSelectType(e.target.value as any)}
                     className="w-full bg-black/40 border border-border/60 text-xs text-white rounded-lg p-2 font-mono outline-none"
                   >
-                    <option value="led">LED (Diodo Luminoso)</option>
+                    <option value="led">LED (Diodo)</option>
                     <option value="buzzer">Zumbador (Buzzer)</option>
+                    <option value="resistor">Resistencia (330Ω)</option>
                     <option value="servo">Servomotor</option>
                     <option value="pot">Potenciómetro</option>
+                    <option value="button">Botón Pulsador</option>
                   </select>
                 </div>
 
-                <div>
-                  <label className="block text-[10px] font-mono text-muted-foreground uppercase mb-1">Pin de Conexión</label>
-                  <select
-                    value={sandboxSelectPin}
-                    onChange={e => setSandboxSelectPin(e.target.value)}
-                    className="w-full bg-black/40 border border-border/60 text-xs text-white rounded-lg p-2 font-mono outline-none"
-                  >
-                    {sandboxSelectType === 'led' && (
-                      <>
-                        <option value="13">Pin 13 (~)</option>
-                        <option value="12">Pin 12</option>
-                        <option value="10">Pin 10 (~)</option>
-                        <option value="7">Pin 7</option>
-                        <option value="2">Pin 2</option>
-                      </>
-                    )}
-                    {sandboxSelectType === 'buzzer' && (
-                      <>
-                        <option value="3">Pin 3 (~)</option>
-                        <option value="6">Pin 6 (~)</option>
-                        <option value="9">Pin 9 (~)</option>
-                      </>
-                    )}
-                    {sandboxSelectType === 'servo' && (
-                      <>
-                        <option value="9">Pin 9 (~)</option>
-                        <option value="10">Pin 10 (~)</option>
-                      </>
-                    )}
-                    {sandboxSelectType === 'pot' && (
-                      <>
-                        <option value="A0">Puerto A0</option>
-                        <option value="A1">Puerto A1</option>
-                        <option value="A2">Puerto A2</option>
-                      </>
-                    )}
-                  </select>
-                </div>
-
-                {sandboxSelectType === 'led' ? (
+                {sandboxSelectType === 'led' && (
                   <div>
                     <label className="block text-[10px] font-mono text-muted-foreground uppercase mb-1">Color del LED</label>
-                    <select
-                      value={sandboxSelectColor}
-                      onChange={e => setSandboxSelectColor(e.target.value as any)}
-                      className="w-full bg-black/40 border border-border/60 text-xs text-white rounded-lg p-2 font-mono outline-none"
-                    >
-                      <option value="red">Rojo</option>
-                      <option value="yellow">Amarillo</option>
-                      <option value="green">Verde</option>
-                      <option value="blue">Azul</option>
-                    </select>
-                  </div>
-                ) : (
-                  <div className="flex items-end">
-                    <button
-                      onClick={addSandboxComponent}
-                      className="w-full py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-bold transition-all font-mono"
-                    >
-                      Conectar Cable ✓
-                    </button>
+                    <div className="grid grid-cols-4 gap-2">
+                      {(['red', 'yellow', 'green', 'blue'] as const).map(color => (
+                        <button
+                          key={color}
+                          onClick={() => setSandboxSelectColor(color)}
+                          className={`py-1.5 rounded text-[10px] font-mono uppercase font-bold border transition-all ${
+                            sandboxSelectColor === color
+                              ? 'border-purple-500 bg-purple-500/10 text-purple-400'
+                              : 'border-border/60 bg-background/20 text-muted-foreground'
+                          }`}
+                        >
+                          {color === 'red' ? 'Rojo' : color === 'yellow' ? 'Amar' : color === 'green' ? 'Verde' : 'Azul'}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
-              </div>
 
-              {sandboxSelectType === 'led' && (
-                <div className="flex justify-end pt-1">
-                  <button
-                    onClick={addSandboxComponent}
-                    className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-bold transition-all font-mono"
-                  >
-                    Conectar Cable ✓
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Code panel */}
-          <div className="rounded-xl border border-border/50 bg-card/25 glass-panel overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-2.5 border-b border-border/40 bg-background/60">
-              <div className="flex items-center gap-2">
-                <Code2 size={14} className={activeProjectData.color} />
-                <span className="text-xs font-mono font-semibold text-foreground">
-                  {activeProject.toUpperCase()}_SKETCH.ino
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-rose-500/60" />
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-500/60" />
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/60" />
-              </div>
-            </div>
-            <div className="overflow-y-auto max-h-[280px] bg-black/70 font-mono text-[11px]">
-              {CODE[activeProject].lines.map((line, i) => (
-                <div
-                  key={i}
-                  className="flex items-start hover:bg-white/3 transition-colors px-1"
+                <button
+                  onClick={addSandboxComponent}
+                  className="w-full py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-bold transition-all font-mono cursor-pointer flex items-center justify-center gap-1.5"
                 >
-                  <span className="w-8 text-right pr-3 py-0.5 text-muted-foreground/30 select-none flex-shrink-0">
-                    {i + 1}
-                  </span>
-                  <span className="py-0.5 flex-1">
-                    <span className="text-zinc-200 whitespace-pre">{line.code}</span>
-                    {line.comment && (
-                      <span className="text-muted-foreground/55 ml-1">{line.comment}</span>
-                    )}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Serial Console */}
-          <div className="rounded-xl border border-border/50 bg-card/25 glass-panel overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-2 border-b border-border/40 bg-background/60">
-              <div className="flex items-center gap-2">
-                <Zap size={13} className="text-primary" />
-                <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">
-                  Monitor Serial — 9600 baud
-                </span>
+                  <Plus size={14} />
+                  Añadir al Workbench
+                </button>
               </div>
+            </div>
+
+            {/* Cable Colors Selector */}
+            <div className="rounded-xl border border-border/60 bg-card/25 p-5 glass-panel space-y-3">
+              <h4 className="font-mono text-xs text-muted-foreground uppercase tracking-widest pl-0.5">
+                Color del Cable Activo
+              </h4>
+              <div className="flex gap-2">
+                {[
+                  { hex: '#ef4444', label: 'Rojo (VCC)' },
+                  { hex: '#1f2937', label: 'Negro (GND)' },
+                  { hex: '#3b82f6', label: 'Azul' },
+                  { hex: '#10b981', label: 'Verde' },
+                  { hex: '#f59e0b', label: 'Naranja' }
+                ].map(c => (
+                  <button
+                    key={c.hex}
+                    onClick={() => setWireColor(c.hex)}
+                    className={`w-7 h-7 rounded-full border-2 transition-all relative flex items-center justify-center cursor-pointer ${
+                      wireColor === c.hex ? 'border-white scale-110 shadow' : 'border-transparent opacity-80'
+                    }`}
+                    style={{ backgroundColor: c.hex }}
+                    title={c.label}
+                  >
+                    {wireColor === c.hex && <div className="w-1.5 h-1.5 rounded-full bg-white mix-blend-difference" />}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Custom Sliders for Placed Components */}
+            {sandboxComponents.length > 0 && (
+              <div className="rounded-xl border border-border/60 bg-card/25 p-5 glass-panel space-y-3.5">
+                <h4 className="font-mono text-xs text-muted-foreground uppercase tracking-widest pl-0.5 border-b border-border/40 pb-1.5">
+                  Controladores de Piezas
+                </h4>
+                <div className="space-y-3.5 max-h-[200px] overflow-y-auto pr-1">
+                  {sandboxComponents.map(c => {
+                    const hasAnodeWire = sandboxWires.some(w => (w.from.componentId === c.id || w.to.componentId === c.id));
+                    return (
+                      <div key={c.id} className="p-3 rounded-lg border border-border/40 bg-background/50 flex flex-col gap-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-mono font-bold text-white uppercase flex items-center gap-1.5">
+                            {c.type === 'led' && <span className="w-2 h-2 rounded-full" style={{ backgroundColor: c.color }} />}
+                            {c.type.toUpperCase()}
+                          </span>
+                          <button 
+                            onClick={() => removeSandboxComponent(c.id)} 
+                            className="text-muted-foreground/45 hover:text-rose-400 transition-colors cursor-pointer"
+                            title="Quitar componente"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+
+                        {c.type === 'pot' && (
+                          <div className="space-y-1">
+                            <input
+                              type="range" min="0" max="1023"
+                              value={Number(c.state || 0)}
+                              onChange={e => {
+                                const val = Number(e.target.value);
+                                setSandboxComponents(prev => prev.map(comp => comp.id === c.id ? { ...comp, state: val } : comp));
+                                if (!isRunning) addLog(`[Potenciómetro] Perilla girada a ${val}`);
+                              }}
+                              className="w-full h-1.5 rounded accent-emerald-500 cursor-pointer"
+                            />
+                            <div className="flex justify-between text-[8px] font-mono text-muted-foreground/60">
+                              <span>0 (0V)</span>
+                              <span className="text-emerald-400 font-bold">WIPER: {c.state}</span>
+                              <span>1023 (5V)</span>
+                            </div>
+                          </div>
+                        )}
+
+                        {c.type === 'servo' && (
+                          <div className="space-y-1">
+                            <input
+                              type="range" min="0" max="180"
+                              value={Number(c.state || 90)}
+                              onChange={e => {
+                                const val = Number(e.target.value);
+                                setSandboxComponents(prev => prev.map(comp => comp.id === c.id ? { ...comp, state: val } : comp));
+                                if (!isRunning) addLog(`[Servo] Posicionado manual a ${val}°`);
+                              }}
+                              className="w-full h-1.5 rounded accent-indigo-500 cursor-pointer"
+                            />
+                            <div className="flex justify-between text-[8px] font-mono text-muted-foreground/60">
+                              <span>0°</span>
+                              <span className="text-indigo-400 font-bold">{c.state}°</span>
+                              <span>180°</span>
+                            </div>
+                          </div>
+                        )}
+
+                        {c.type === 'button' && (
+                          <div className="flex items-center justify-between pt-0.5">
+                            <span className="text-[9px] text-muted-foreground">Presión del Botón:</span>
+                            <button
+                              onMouseDown={() => {
+                                setSandboxComponents(prev => prev.map(comp => comp.id === c.id ? { ...comp, state: true } : comp));
+                                if (!isRunning) addLog(`[Botón] Pulsado (HIGH)`);
+                              }}
+                              onMouseUp={() => {
+                                setSandboxComponents(prev => prev.map(comp => comp.id === c.id ? { ...comp, state: false } : comp));
+                                if (!isRunning) addLog(`[Botón] Soltado (LOW)`);
+                              }}
+                              className={`px-3 py-1 rounded text-[9px] font-mono font-bold uppercase transition-all ${
+                                c.state
+                                  ? 'bg-rose-500 border border-rose-600 text-white'
+                                  : 'bg-muted/30 border border-border/50 text-muted-foreground hover:bg-muted/50'
+                              }`}
+                            >
+                              {c.state ? 'PRESIONADO' : 'MANTENER PRES.'}
+                            </button>
+                          </div>
+                        )}
+
+                        {(c.type === 'led' || c.type === 'buzzer' || c.type === 'resistor') && (
+                          <div className="text-[9px] text-muted-foreground/60 font-mono">
+                            {c.type === 'resistor' ? 'Conecta en serie para limitar corriente' : `Monitoreando estado del terminal`}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Save/Load Layout Controls */}
+            <div className="rounded-xl border border-border/60 bg-card/25 p-5 glass-panel flex gap-3">
               <button
-                onClick={() => setLogs([])}
-                className="text-[10px] font-mono text-muted-foreground/50 hover:text-muted-foreground transition-colors cursor-pointer"
+                onClick={saveCircuit}
+                className="flex-1 py-2 bg-zinc-800 hover:bg-zinc-700 border border-border/40 text-xs font-mono font-bold text-white rounded-lg flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                Limpiar
+                <Save size={13} />
+                Guardar
+              </button>
+              <button
+                onClick={loadCircuit}
+                className="flex-1 py-2 bg-zinc-800 hover:bg-zinc-700 border border-border/40 text-xs font-mono font-bold text-white rounded-lg flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <FolderOpen size={13} />
+                Cargar
               </button>
             </div>
-            {/* Scrollable console using local ref only */}
-            <div ref={logsContainerRef} className="bg-black/80 p-3 h-36 overflow-y-auto font-mono text-[10px] space-y-0.5">
-              {logs.map((log, i) => (
-                <div key={i} className={`${log.startsWith('[Sistema]') ? 'text-muted-foreground/50' : log.includes('[Error]') ? 'text-rose-400' : 'text-emerald-400'}`}>
-                  {log}
-                </div>
-              ))}
-            </div>
           </div>
 
-          {/* Info card */}
-          <div className={`rounded-xl border ${activeProjectData.borderColor} ${activeProjectData.badgeBg} p-4 flex items-start gap-3`}>
-            <Info size={16} className={`${activeProjectData.color} flex-shrink-0 mt-0.5`} />
-            <div className="text-xs">
-              <p className={`font-semibold ${activeProjectData.color} mb-1`}>{activeProjectData.name}</p>
-              <p className="text-muted-foreground leading-relaxed">{activeProjectData.desc}</p>
+          {/* Interactive SVG Workspace Workbench Canvas (Col 8) */}
+          <div className="lg:col-span-8 space-y-4">
+            {/* Workbench Canvas Screen */}
+            <div className="rounded-xl border border-border/60 bg-card/25 overflow-hidden glass-panel relative flex flex-col bg-slate-950">
+              <div className="flex items-center justify-between px-4 py-2.5 border-b border-border/40 bg-slate-900/90 z-20">
+                <span className="text-xs font-mono font-semibold text-white flex items-center gap-1.5">
+                  <CircuitBoard size={14} className="text-purple-400" />
+                  MESA DE TRABAJO VIRTUAL (800x500 px)
+                </span>
+                
+                <div className="flex items-center gap-3">
+                  {wireStart && (
+                    <span className="text-[10px] font-mono text-blue-400 animate-pulse font-bold bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded">
+                      CABLEANDO DESDE: {wireStart.nodeName}
+                    </span>
+                  )}
+                  <button
+                    onClick={clearCircuit}
+                    className="text-[10px] font-mono text-muted-foreground hover:text-rose-400 transition-colors cursor-pointer"
+                  >
+                    Limpiar Todo
+                  </button>
+                </div>
+              </div>
+
+              {/* SVG Canvas Area */}
+              <div className="relative w-full overflow-hidden bg-slate-900/40 select-none">
+                <svg
+                  ref={svgRef}
+                  viewBox="0 0 800 500"
+                  className="w-full h-full aspect-[8/5]"
+                  onMouseMove={handleMouseMove}
+                  onMouseUp={handleMouseUp}
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  {/* Grid background dots pattern */}
+                  <defs>
+                    <pattern id="sandbox-grid" width="20" height="20" patternUnits="userSpaceOnUse">
+                      <circle cx="2" cy="2" r="1" fill="#334155" opacity="0.4" />
+                    </pattern>
+                  </defs>
+                  <rect width="100%" height="100%" fill="url(#sandbox-grid)" />
+
+                  {/* Draw Cable wires */}
+                  {sandboxWires.map(w => {
+                    const start = getNodeCoords(w.from.componentId, w.from.nodeName);
+                    const end = getNodeCoords(w.to.componentId, w.to.nodeName);
+                    
+                    // Bezier Curve path for elegant realistic routing
+                    const dx = Math.abs(end.x - start.x) * 0.5;
+                    const pathD = `M ${start.x} ${start.y} C ${start.x + dx} ${start.y}, ${end.x - dx} ${end.y}, ${end.x} ${end.y}`;
+                    
+                    return (
+                      <g key={w.id} className="group">
+                        {/* Shadow path */}
+                        <path
+                          d={pathD}
+                          fill="none"
+                          stroke="rgba(239, 68, 68, 0.2)"
+                          strokeWidth="8"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+                        />
+                        {/* Visual Wire */}
+                        <path
+                          d={pathD}
+                          fill="none"
+                          stroke={w.color}
+                          strokeWidth="3.2"
+                          className="group-hover:stroke-rose-500 transition-colors pointer-events-none"
+                        />
+                        {/* Easy-click invisible wide target */}
+                        <path
+                          d={pathD}
+                          fill="none"
+                          stroke="transparent"
+                          strokeWidth="12"
+                          className="cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSandboxWires(prev => prev.filter(wire => wire.id !== w.id));
+                            addLog(`[Cableado] Cable eliminado.`);
+                          }}
+                        />
+                      </g>
+                    );
+                  })}
+
+                  {/* Draw Temporary dragging wire if drawing */}
+                  {wireStart && (
+                    (() => {
+                      const start = getNodeCoords(wireStart.componentId, wireStart.nodeName);
+                      const end = tempMousePos;
+                      const dx = Math.abs(end.x - start.x) * 0.5;
+                      return (
+                        <path
+                          d={`M ${start.x} ${start.y} C ${start.x + dx} ${start.y}, ${end.x - dx} ${end.y}, ${end.x} ${end.y}`}
+                          fill="none"
+                          stroke={wireColor}
+                          strokeWidth="2.5"
+                          strokeDasharray="4,2"
+                          className="pointer-events-none"
+                        />
+                      );
+                    })()
+                  )}
+
+                  {/* Draw Fixed Arduino UNO */}
+                  <g transform="translate(40, 80)">
+                    {/* PCB Board background */}
+                    <rect x="0" y="0" width="180" height="340" rx="8" fill="#1e3a2f" stroke="#2d5c3f" strokeWidth="2" />
+                    <rect x="6" y="6" width="168" height="328" rx="6" fill="#14532d" opacity="0.35" />
+                    
+                    {/* Components layouts inside Board */}
+                    <rect x="50" y="240" width="80" height="80" rx="3" fill="#1e293b" opacity="0.4" stroke="#475569" strokeWidth="0.5" />
+                    <text x="90" y="285" textAnchor="middle" fill="#94a3b8" fontSize="8" fontFamily="monospace">MCU ATMEGA</text>
+                    
+                    <text x="90" y="35" textAnchor="middle" fill="#4ade80" fontSize="12" fontFamily="monospace" fontWeight="bold">ARDUINO UNO</text>
+                    <text x="90" y="48" textAnchor="middle" fill="#22c55e" fontSize="7.5" fontFamily="monospace">ATmega328P</text>
+                    
+                    {/* Power Ports & USB visuals */}
+                    <rect x="-14" y="20" width="22" height="36" rx="2" fill="#64748b" stroke="#475569" strokeWidth="1" />
+                    <rect x="-14" y="260" width="26" height="45" rx="3" fill="#0f172a" />
+                    
+                    {/* Pins Header Labels */}
+                    <text x="148" y="12" textAnchor="end" fill="#4ade80" fontSize="6" fontFamily="monospace" fontWeight="bold">DIGITAL</text>
+                    <text x="148" y="218" textAnchor="end" fill="#60a5fa" fontSize="6" fontFamily="monospace" fontWeight="bold">ANALOG</text>
+
+                    {/* Loop and render Arduino Node pins */}
+                    {ARDUINO_PINS.map(pin => {
+                      const isStart = wireStart && wireStart.componentId === 'arduino' && wireStart.nodeName === pin.name;
+                      const isHovered = hoverNode === `arduino:${pin.name}`;
+                      
+                      return (
+                        <g 
+                          key={pin.name}
+                          onMouseEnter={() => setHoverNode(`arduino:${pin.name}`)}
+                          onMouseLeave={() => setHoverNode(null)}
+                          onClick={(e) => handleNodeClick(e, 'arduino', pin.name)}
+                          className="cursor-pointer"
+                        >
+                          {/* Header Block visual black header */}
+                          <rect x="156" y={pin.y - 6} width="16" height="12" fill="#090d16" stroke="#1f2937" strokeWidth="0.5" />
+                          <circle cx="164" cy={pin.y} r="2" fill="#94a3b8" />
+                          
+                          <text x="150" y={pin.y + 3.5} textAnchor="end" fill="#94a3b8" fontSize="7.5" fontFamily="monospace">{pin.label}</text>
+                          
+                          {/* Node Port Area */}
+                          <circle 
+                            cx="164" 
+                            cy={pin.y} 
+                            r={isStart ? 8 : isHovered ? 6 : 4} 
+                            fill={isStart ? 'rgba(59, 130, 246, 0.4)' : isHovered ? 'rgba(16, 185, 129, 0.3)' : 'transparent'} 
+                            className={isStart ? 'animate-pulse' : ''}
+                            style={{ transition: 'r 0.15s ease' }}
+                          />
+                          
+                          {isHovered && (
+                            <g transform={`translate(164, ${pin.y - 12})`}>
+                              <rect x="-35" y="-10" width="70" height="13" rx="2" fill="#1e293b" stroke="#475569" strokeWidth="0.5" />
+                              <text x="0" y="-1" textAnchor="middle" fill="#f8fafc" fontSize="7" fontFamily="monospace">Arduino {pin.label}</text>
+                            </g>
+                          )}
+                        </g>
+                      );
+                    })}
+                  </g>
+
+                  {/* Placed components rendering on workbench */}
+                  {sandboxComponents.map(c => {
+                    const isDragging = draggingId === c.id;
+                    
+                    return (
+                      <g key={c.id}>
+                        {c.type === 'led' && (
+                          <g transform={`translate(${c.x}, ${c.y})`} onMouseDown={(e) => startDrag(e, c.id)} className="cursor-grab select-none">
+                            {/* Dragging outline */}
+                            <rect x="-5" y="-5" width="45" height="70" rx="4" fill="transparent" stroke={isDragging ? '#a855f7' : 'transparent'} strokeWidth="1" strokeDasharray="3,2" />
+                            {/* Visual LED */}
+                            <path 
+                              d="M 10 35 A 12 12 0 0 1 34 35 L 34 45 L 10 45 Z" 
+                              fill={c.state ? (c.color === 'red' ? '#ef4444' : c.color === 'yellow' ? '#f59e0b' : c.color === 'green' ? '#10b981' : '#3b82f6') : '#475569'} 
+                              stroke="#1e293b" 
+                              strokeWidth="1.5" 
+                            />
+                            {c.state && (
+                              <circle 
+                                cx="22" 
+                                cy="25" 
+                                r="22" 
+                                fill={c.color === 'red' ? 'rgba(239, 68, 68, 0.25)' : c.color === 'yellow' ? 'rgba(245, 158, 11, 0.25)' : c.color === 'green' ? 'rgba(16, 185, 129, 0.25)' : 'rgba(59, 130, 246, 0.25)'} 
+                                filter="blur(2px)"
+                                className="animate-pulse"
+                              />
+                            )}
+                            <line x1="15" y1="45" x2="15" y2="55" stroke="#94a3b8" strokeWidth="2" />
+                            <line x1="29" y1="45" x2="29" y2="55" stroke="#94a3b8" strokeWidth="2" />
+                            <text x="22" y="10" textAnchor="middle" fill="#64748b" fontSize="8" fontFamily="monospace" fontWeight="bold">LED</text>
+                            
+                            {/* Terminals */}
+                            {renderNode(c.id, 'anode', 10, 55, '+ Anodo')}
+                            {renderNode(c.id, 'cathode', 25, 55, '- Catodo')}
+                          </g>
+                        )}
+
+                        {c.type === 'buzzer' && (
+                          <g transform={`translate(${c.x}, ${c.y})`} onMouseDown={(e) => startDrag(e, c.id)} className="cursor-grab select-none">
+                            <rect x="-5" y="-5" width="45" height="65" rx="4" fill="transparent" stroke={isDragging ? '#a855f7' : 'transparent'} strokeWidth="1" strokeDasharray="3,2" />
+                            <circle cx="17" cy="20" r="18" fill="#1e293b" stroke="#475569" strokeWidth="1.5" />
+                            <circle cx="17" cy="20" r="4" fill="#0f172a" />
+                            <line x1="10" y1="36" x2="10" y2="50" stroke="#94a3b8" strokeWidth="2" />
+                            <line x1="25" y1="36" x2="25" y2="50" stroke="#94a3b8" strokeWidth="2" />
+                            <text x="17" y="-2" textAnchor="middle" fill="#64748b" fontSize="8" fontFamily="monospace" fontWeight="bold">BUZZER</text>
+                            
+                            {c.state && (
+                              <g stroke="#ef4444" strokeWidth="1" fill="none">
+                                <circle cx="17" cy="20" r="24" className="animate-ping" style={{ animationDuration: '1s' }} />
+                              </g>
+                            )}
+
+                            {renderNode(c.id, 'pos', 10, 50, '+ Positivo')}
+                            {renderNode(c.id, 'neg', 25, 50, '- Negativo')}
+                          </g>
+                        )}
+
+                        {c.type === 'resistor' && (
+                          <g transform={`translate(${c.x}, ${c.y})`} onMouseDown={(e) => startDrag(e, c.id)} className="cursor-grab select-none">
+                            <rect x="-5" y="-5" width="60" height="40" rx="4" fill="transparent" stroke={isDragging ? '#a855f7' : 'transparent'} strokeWidth="1" strokeDasharray="3,2" />
+                            <line x1="0" y1="15" x2="50" y2="15" stroke="#94a3b8" strokeWidth="2.5" />
+                            <rect x="10" y="8" width="30" height="14" rx="3" fill="#f5e6c8" stroke="#d4a017" strokeWidth="1.2" />
+                            {/* Color bands: orange orange brown */}
+                            <rect x="15" y="8" width="3.5" height="14" fill="#ea580c" />
+                            <rect x="22" y="8" width="3.5" height="14" fill="#ea580c" />
+                            <rect x="29" y="8" width="3.5" height="14" fill="#78350f" />
+                            <text x="25" y="-3" textAnchor="middle" fill="#64748b" fontSize="8" fontFamily="monospace" fontWeight="bold">330Ω</text>
+                            
+                            {renderNode(c.id, 'termA', 0, 15, 'Terminal A')}
+                            {renderNode(c.id, 'termB', 50, 15, 'Terminal B')}
+                          </g>
+                        )}
+
+                        {c.type === 'servo' && (
+                          <g transform={`translate(${c.x}, ${c.y})`} onMouseDown={(e) => startDrag(e, c.id)} className="cursor-grab select-none">
+                            <rect x="-5" y="-5" width="60" height="70" rx="4" fill="transparent" stroke={isDragging ? '#a855f7' : 'transparent'} strokeWidth="1" strokeDasharray="3,2" />
+                            <rect x="0" y="5" width="50" height="36" rx="3" fill="#2563eb" stroke="#1d4ed8" strokeWidth="1.5" />
+                            <circle cx="35" cy="23" r="10" fill="#1e40af" />
+                            
+                            {/* Rotating horn */}
+                            <g transform={`rotate(${Number(c.state || 90) - 90}, 35, 23)`} style={{ transition: 'transform 0.15s ease' }}>
+                              <rect x="12" y="20" width="46" height="6" rx="2" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="0.5" />
+                              <circle cx="20" cy="23" r="2" fill="#94a3b8" />
+                              <circle cx="35" cy="23" r="2.5" fill="#475569" />
+                              <circle cx="50" cy="23" r="2" fill="#94a3b8" />
+                            </g>
+                            
+                            <line x1="10" y1="41" x2="10" y2="55" stroke="#f59e0b" strokeWidth="1.5" />
+                            <line x1="25" y1="41" x2="25" y2="55" stroke="#ef4444" strokeWidth="1.5" />
+                            <line x1="40" y1="41" x2="40" y2="55" stroke="#78350f" strokeWidth="1.5" />
+                            <text x="25" y="-2" textAnchor="middle" fill="#64748b" fontSize="8" fontFamily="monospace" fontWeight="bold">SERVO</text>
+                            
+                            {renderNode(c.id, 'sig', 10, 55, 'SIG (Cable Naranja)')}
+                            {renderNode(c.id, 'vcc', 25, 55, '5V (Cable Rojo)')}
+                            {renderNode(c.id, 'gnd', 40, 55, 'GND (Cable Marron)')}
+                          </g>
+                        )}
+
+                        {c.type === 'pot' && (
+                          <g transform={`translate(${c.x}, ${c.y})`} onMouseDown={(e) => startDrag(e, c.id)} className="cursor-grab select-none">
+                            <rect x="-5" y="-5" width="58" height="65" rx="4" fill="transparent" stroke={isDragging ? '#a855f7' : 'transparent'} strokeWidth="1" strokeDasharray="3,2" />
+                            <circle cx="25" cy="20" r="18" fill="#1e293b" stroke="#475569" strokeWidth="1.5" />
+                            <circle cx="25" cy="20" r="12" fill="#0f172a" />
+                            
+                            {/* Dial needle */}
+                            <line 
+                              x1="25" 
+                              y1="20" 
+                              x2={25 + 10 * Math.sin(((Number(c.state || 0)/1023*270-135)*Math.PI)/180)} 
+                              y2={20 - 10 * Math.cos(((Number(c.state || 0)/1023*270-135)*Math.PI)/180)} 
+                              stroke="#10b981" 
+                              strokeWidth="2.5" 
+                              strokeLinecap="round" 
+                            />
+                            
+                            <line x1="10" y1="38" x2="10" y2="50" stroke="#94a3b8" strokeWidth="2" />
+                            <line x1="25" y1="38" x2="25" y2="50" stroke="#94a3b8" strokeWidth="2" />
+                            <line x1="40" y1="38" x2="40" y2="50" stroke="#94a3b8" strokeWidth="2" />
+                            <text x="25" y="-2" textAnchor="middle" fill="#64748b" fontSize="8" fontFamily="monospace" fontWeight="bold">POT</text>
+                            
+                            {renderNode(c.id, 'vcc', 10, 50, '5V (Terminal 1)')}
+                            {renderNode(c.id, 'wiper', 25, 50, 'WIPER (W)')}
+                            {renderNode(c.id, 'gnd', 40, 50, 'GND (Terminal 2)')}
+                          </g>
+                        )}
+
+                        {c.type === 'button' && (
+                          <g transform={`translate(${c.x}, ${c.y})`} onMouseDown={(e) => startDrag(e, c.id)} className="cursor-grab select-none">
+                            <rect x="-5" y="-5" width="48" height="60" rx="4" fill="transparent" stroke={isDragging ? '#a855f7' : 'transparent'} strokeWidth="1" strokeDasharray="3,2" />
+                            <rect x="0" y="5" width="40" height="30" rx="3" fill="#334155" stroke="#475569" strokeWidth="1.5" />
+                            <circle cx="20" cy="20" r={c.state ? 6 : 8} fill={c.state ? '#ef4444' : '#b91c1c'} stroke="#1f2937" strokeWidth="1" style={{ transition: 'all 0.1s ease' }} />
+                            <line x1="10" y1="35" x2="10" y2="45" stroke="#94a3b8" strokeWidth="2" />
+                            <line x1="30" y1="35" x2="30" y2="45" stroke="#94a3b8" strokeWidth="2" />
+                            <text x="20" y="-3" textAnchor="middle" fill="#64748b" fontSize="8" fontFamily="monospace" fontWeight="bold">BUTTON</text>
+                            
+                            {renderNode(c.id, 'termA', 10, 45, 'Terminal A')}
+                            {renderNode(c.id, 'termB', 30, 45, 'Terminal B')}
+                          </g>
+                        )}
+                      </g>
+                    );
+                  })}
+                </svg>
+              </div>
+            </div>
+
+            {/* Sandbox Sketch preset selector and code viewer */}
+            <div className="grid gap-6 md:grid-cols-2">
+              <div className="rounded-xl border border-border/50 bg-card/25 glass-panel overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-2.5 border-b border-border/40 bg-slate-900">
+                  <span className="text-xs font-mono font-semibold text-white flex items-center gap-1.5">
+                    <Code2 size={13} className="text-purple-400" />
+                    Cargar Sketch Preset
+                  </span>
+                </div>
+                <div className="p-4 space-y-4">
+                  <div>
+                    <label className="block text-[10px] font-mono text-muted-foreground uppercase mb-1">Sketch de Control</label>
+                    <select
+                      value={sandboxSketch}
+                      onChange={e => {
+                        const nextSk = e.target.value as SandboxSketch;
+                        setSandboxSketch(nextSk);
+                        setIsRunning(false);
+                        addLog(`[Arduino] Cargar Sketch: ${SANDBOX_SKETCHES.find(s => s.id === nextSk)?.name}`);
+                      }}
+                      className="w-full bg-black/40 border border-border/60 text-xs text-white rounded-lg p-2 font-mono outline-none"
+                    >
+                      {SANDBOX_SKETCHES.map(s => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <pre className="p-3 bg-black/70 rounded-lg text-[10px] font-mono text-zinc-300 h-28 overflow-y-auto leading-relaxed border border-border/40">
+                    {SANDBOX_SKETCHES.find(s => s.id === sandboxSketch)?.code}
+                  </pre>
+                </div>
+              </div>
+
+              {/* Sandbox Monitor Serial logs */}
+              <div className="rounded-xl border border-border/50 bg-card/25 glass-panel overflow-hidden flex flex-col justify-between">
+                <div className="flex items-center justify-between px-4 py-2 border-b border-border/40 bg-slate-900">
+                  <div className="flex items-center gap-2">
+                    <Zap size={13} className="text-purple-400" />
+                    <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">
+                      Monitor Serial (9600 baud)
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setLogs([])}
+                    className="text-[10px] font-mono text-muted-foreground/50 hover:text-muted-foreground transition-colors cursor-pointer"
+                  >
+                    Limpiar
+                  </button>
+                </div>
+                <div ref={logsContainerRef} className="bg-black/80 p-3 h-36 overflow-y-auto font-mono text-[10px] space-y-0.5 flex-1">
+                  {logs.map((log, i) => (
+                    <div key={i} className={`${log.startsWith('[Tablero]') ? 'text-purple-400/80' : log.includes('[Error]') ? 'text-rose-400' : 'text-emerald-400'}`}>
+                      {log}
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Visual control keys */}
+                <div className="bg-slate-900 px-4 py-2 flex gap-3 border-t border-border/40 justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2.5 h-2.5 rounded-full ${isRunning ? 'bg-emerald-500 animate-pulse' : 'bg-muted-foreground/30'}`} />
+                    <span className="text-[9px] font-mono text-muted-foreground">SIMULACION {isRunning ? 'RUNNING' : 'STOPPED'}</span>
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    {isRunning ? (
+                      <button
+                        onClick={handleStop}
+                        className="px-3.5 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px] font-mono font-bold rounded cursor-pointer"
+                      >
+                        Pausar
+                      </button>
+                    ) : (
+                      <button
+                        onClick={handleStart}
+                        className="px-3.5 py-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-mono font-bold rounded cursor-pointer"
+                      >
+                        Arrancar
+                      </button>
+                    )}
+                    <button
+                      onClick={handleReset}
+                      className="px-3.5 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[10px] font-mono font-bold rounded cursor-pointer"
+                    >
+                      Reset
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Sandbox Tips and documentation card */}
+            <div className="rounded-xl border border-purple-500/20 bg-purple-500/5 p-4 flex items-start gap-3">
+              <Info size={16} className="text-purple-400 flex-shrink-0 mt-0.5" />
+              <div className="text-xs text-muted-foreground leading-relaxed">
+                <p className="font-semibold text-purple-400 mb-1">Laboratorio de Circuitos Sandbox - Guía de Operación</p>
+                <ul className="list-disc pl-4 space-y-1">
+                  <li><strong>Arrastre de piezas:</strong> Mantén presionado el botón del mouse sobre cualquier componente de la derecha para moverlo libremente en el tablero.</li>
+                  <li><strong>Cableado interactivo:</strong> Haz clic en un pin circular (puerto) para iniciar la conexión, luego haz clic en otro pin para colocar el cable.</li>
+                  <li><strong>Eliminar cables:</strong> Haz clic directamente sobre un cable existente para retirarlo de la mesa de trabajo.</li>
+                  <li><strong>Física y Presets:</strong> Carga sketches como <em>Parpadeo (Blink)</em> o <em>Control de Servo</em>, arranca la simulación, y opera potenciómetros o botones para ver reacciones dinámicas.</li>
+                </ul>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

@@ -1,4 +1,5 @@
 import { Header } from '@/components/header'
+import { LayoutWrapper } from '@/components/layout-wrapper'
 import { getEMU8086Tutorials } from '@/lib/db-service'
 import { EMU8086Simulator } from '@/components/emu8086-simulator'
 import Link from 'next/link'
@@ -10,7 +11,8 @@ export default async function EMU8086TutorialPage() {
   const tutorials = await getEMU8086Tutorials()
 
   return (
-    <main className="min-h-screen bg-background text-foreground selection:bg-primary/30 selection:text-white">
+    <LayoutWrapper>
+      <main className="min-h-screen bg-background text-foreground selection:bg-primary/30 selection:text-white">
       <Header />
 
       <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
@@ -42,6 +44,7 @@ export default async function EMU8086TutorialPage() {
         <EMU8086Simulator tutorials={tutorials} />
       </section>
     </main>
+    </LayoutWrapper>
   )
 }
 

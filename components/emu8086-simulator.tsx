@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { 
   Play, 
+  Pause,
+  Square,
   ChevronRight, 
   RotateCcw, 
   Terminal as TerminalIcon, 
@@ -170,6 +172,7 @@ interface Registers {
   CS: number
   DS: number
   SS: number
+  [key: string]: number // Dynamic indexer for comparisons
 }
 
 // CPU Flag register interface
@@ -177,6 +180,7 @@ interface Flags {
   ZF: number
   CF: number
   SF: number
+  [key: string]: number
 }
 
 // Compiled Assembly Instruction representational shape
@@ -186,6 +190,79 @@ interface ParsedInstruction {
   mnemonic: string
   operands: string[]
   label?: string
+}
+
+function highlightAssemblyLine(line: string) {
+  if (!line) return '';
+  
+  // A comment starts with ';' and goes to the end of the line
+  const commentIdx = line.indexOf(';');
+  let codePart = commentIdx !== -1 ? line.substring(0, commentIdx) : line;
+  const commentPart = commentIdx !== -1 ? line.substring(commentIdx) : '';
+  
+  // Escape HTML helper
+  const escapeHtml = (text: string) => {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  };
+
+  // Keywords set
+  const keywords = new Set([
+    'mov', 'add', 'sub', 'mul', 'div', 'inc', 'dec', 'cmp', 
+    'jmp', 'je', 'jne', 'loop', 'int', 'push', 'pop', 'jz', 'jnz',
+    'cli', 'sti', 'nop', 'ret', 'call', 'proc', 'endp', 'org', 
+    'db', 'dw', 'dup', 'equ'
+  ]);
+  
+  // Registers set
+  const registers = new Set([
+    'ax', 'bx', 'cx', 'dx', 'ah', 'al', 'bh', 'bl', 'ch', 'cl', 'dh', 'dl',
+    'sp', 'bp', 'si', 'di', 'ds', 'es', 'cs', 'ss'
+  ]);
+
+  // Regex to split code into tokens:
+  // - Strings: "..." or '...'
+  // - Directives: .model, .data, etc. (starts with dot)
+  // - Words (letters + numbers + underscores): mov, ax, 05h, label
+  // - Any other character: commas, brackets, etc.
+  const tokenRegex = /("[^"]*"|'[^']*'|\.[a-zA-Z_]\w*|[a-zA-Z_]\w*h?|\d+h?|[,:\[\]\+\-\*\/@\?]+|\s+|\S)/g;
+  
+  let resultHtml = '';
+  
+  // Match tokens
+  const tokens = codePart.match(tokenRegex) || [];
+  
+  for (const token of tokens) {
+    const lowerToken = token.toLowerCase();
+    
+    if (token.startsWith('"') || token.startsWith("'")) {
+      // String literal
+      resultHtml += `<span class="text-amber-400">${escapeHtml(token)}</span>`;
+    } else if (token.startsWith('.')) {
+      // Directive
+      resultHtml += `<span class="text-cyan-400 font-bold">${escapeHtml(token)}</span>`;
+    } else if (keywords.has(lowerToken)) {
+      // Keyword
+      resultHtml += `<span class="text-purple-400 font-bold">${escapeHtml(token)}</span>`;
+    } else if (registers.has(lowerToken)) {
+      // Register
+      resultHtml += `<span class="text-emerald-400 font-medium">${escapeHtml(token)}</span>`;
+    } else if (/^[0-9a-fA-F]+h$/.test(token) || /^\d+$/.test(token)) {
+      // Number (hex like 05h or decimal)
+      resultHtml += `<span class="text-blue-400">${escapeHtml(token)}</span>`;
+    } else {
+      // General token (variables, labels, spaces, commas, etc.)
+      resultHtml += escapeHtml(token);
+    }
+  }
+  
+  if (commentPart) {
+    resultHtml += `<span class="text-zinc-500">${escapeHtml(commentPart)}</span>`;
+  }
+  
+  return resultHtml;
 }
 
 export function EMU8086Simulator({ tutorials }: EMU8086SimulatorProps) {
@@ -204,6 +281,26 @@ export function EMU8086Simulator({ tutorials }: EMU8086SimulatorProps) {
   })
   const [flags, setFlags] = useState<Flags>({ ZF: 0, CF: 0, SF: 0 })
   
+  // Track previous states for visual flash highlights
+  const [prevRegisters, setPrevRegisters] = useState<Registers | null>(null)
+  const [prevFlags, setPrevFlags] = useState<Flags | null>(null)
+
+  // Editor Refs for Scroll Synchronization
+  const editorRef = useRef<HTMLTextAreaElement>(null)
+  const preRef = useRef<HTMLPreElement>(null)
+  const lineNoRef = useRef<HTMLDivElement>(null)
+
+  const handleScroll = (e: React.UIEvent<HTMLTextAreaElement>) => {
+    const target = e.currentTarget
+    if (preRef.current) {
+      preRef.current.scrollTop = target.scrollTop
+      preRef.current.scrollLeft = target.scrollLeft
+    }
+    if (lineNoRef.current) {
+      lineNoRef.current.scrollTop = target.scrollTop
+    }
+  }
+
   // Execution Control variables
   const [compiledInstructions, setCompiledInstructions] = useState<ParsedInstruction[]>([])
   const [symbolTable, setSymbolTable] = useState<{ [label: string]: number }>({})
@@ -265,7 +362,6 @@ export function EMU8086Simulator({ tutorials }: EMU8086SimulatorProps) {
 
             if (valStr.startsWith('"') && valStr.endsWith('"')) {
               // String constant
-              // Simple emulation stores first char ASCII or placeholder
               val = valStr.charCodeAt(1)
             } else if (valStr.endsWith('h')) {
               val = parseInt(valStr.slice(0, -1), 16)
@@ -323,6 +419,8 @@ export function EMU8086Simulator({ tutorials }: EMU8086SimulatorProps) {
         CS: 0x1000, DS: 0x2000, SS: 0x3000
       })
       setFlags({ ZF: 0, CF: 0, SF: 0 })
+      setPrevRegisters(null)
+      setPrevFlags(null)
       
       setConsoleLogs([
         'Compilación exitosa.',
@@ -426,6 +524,10 @@ export function EMU8086Simulator({ tutorials }: EMU8086SimulatorProps) {
       return false
     }
 
+    // Capture states before this step runs to trigger flashes
+    setPrevRegisters({ ...registers })
+    setPrevFlags({ ...flags })
+
     const inst = compiledInstructions[currentLineIndex]
     let nextIdx = currentLineIndex + 1
     let jumpTaken = false
@@ -438,7 +540,6 @@ export function EMU8086Simulator({ tutorials }: EMU8086SimulatorProps) {
         case 'MOV': {
           if (operands.length === 2) {
             const dest = operands[0]
-            // Emulate mov ds, ax ignore segment fault
             if (dest.toLowerCase() === 'ds' || dest.toLowerCase() === 'es') {
               // Just visual log
             } else {
@@ -489,7 +590,6 @@ export function EMU8086Simulator({ tutorials }: EMU8086SimulatorProps) {
         case 'MUL': {
           if (operands.length === 1) {
             const factor = resolveValue(operands[0])
-            // Standard emulation multiplies AL * factor -> stores in AX
             const al = registers.AX & 0xFF
             const product = al * factor
             writeValue('ax', product)
@@ -592,7 +692,6 @@ export function EMU8086Simulator({ tutorials }: EMU8086SimulatorProps) {
             const label = operands[0]
             const currentCx = (registers.CX - 1) & 0xFFFF
             
-            // Write CX decremented
             setRegisters(prev => ({
               ...prev,
               CX: currentCx
@@ -614,9 +713,6 @@ export function EMU8086Simulator({ tutorials }: EMU8086SimulatorProps) {
             const ah = (registers.AX >> 8) & 0xFF
             
             if (ah === 0x09) {
-              // Write message to terminal
-              // Simulate extract text
-              // Search for msg or offset
               let msg = 'Hola, UNI Nicaragua!'
               if (code.includes('msg db "')) {
                 const match = code.match(/msg db "(.*?)\$"/)
@@ -625,7 +721,6 @@ export function EMU8086Simulator({ tutorials }: EMU8086SimulatorProps) {
               setConsoleLogs(prev => [...prev, `[Consola]: ${msg}`])
             } 
             else if (ah === 0x02) {
-              // Print single ASCII char from DL
               const dlChar = String.fromCharCode(registers.DX & 0xFF)
               setConsoleLogs(prev => {
                 const logs = [...prev]
@@ -648,11 +743,9 @@ export function EMU8086Simulator({ tutorials }: EMU8086SimulatorProps) {
           break
         }
         default:
-          // Skip unrecognized instruction gracefully
           break
       }
 
-      // Update IP visually
       if (nextIdx < compiledInstructions.length) {
         const nextInst = compiledInstructions[nextIdx]
         setRegisters(prev => ({ ...prev, IP: nextInst.lineNum }))
@@ -680,6 +773,25 @@ export function EMU8086Simulator({ tutorials }: EMU8086SimulatorProps) {
     setIsRunning(true)
   }
 
+  // Pause execution
+  const handlePause = () => {
+    setIsRunning(false)
+  }
+
+  // Stop simulation (reset execution index to 0 without clearing values)
+  const handleStop = () => {
+    setIsRunning(false)
+    setExecutionHalted(false)
+    if (compiledInstructions.length > 0) {
+      setCurrentLineIndex(0)
+      setRegisters(prev => ({
+        ...prev,
+        IP: compiledInstructions[0].lineNum
+      }))
+    }
+    setConsoleLogs(prev => [...prev, '>>> Simulación detenida. IP restablecido al inicio.'])
+  }
+
   // Trigger automated stepping if isRunning changes
   useEffect(() => {
     if (isRunning) {
@@ -688,7 +800,7 @@ export function EMU8086Simulator({ tutorials }: EMU8086SimulatorProps) {
         if (!ok) {
           setIsRunning(false)
         }
-      }, 500) // 500ms delay per line
+      }, 500)
     } else {
       if (timerRef.current) {
         clearInterval(timerRef.current)
@@ -715,14 +827,49 @@ export function EMU8086Simulator({ tutorials }: EMU8086SimulatorProps) {
       IP: 0, CS: 0x1000, DS: 0x2000, SS: 0x3000
     })
     setFlags({ ZF: 0, CF: 0, SF: 0 })
+    setPrevRegisters(null)
+    setPrevFlags(null)
     setConsoleLogs([
       'EMU8086 Emulador de CPU v1.0',
       'Registros y variables reestablecidos a cero.'
     ])
   }
 
+  // Compute line layout details
+  const rawLines = code.split('\n')
+  const highlightedCodeLines = rawLines.map((line, idx) => {
+    const isExecuting = isCompiled && currentLineIndex !== null && 
+      compiledInstructions[currentLineIndex] && 
+      (compiledInstructions[currentLineIndex].lineNum - 1 === idx)
+    
+    const highlightedLine = highlightAssemblyLine(line)
+    
+    if (isExecuting) {
+      return `<div class="bg-primary/20 border-l-2 border-primary px-4 -mx-4 font-bold text-white">${highlightedLine || ' '}</div>`
+    }
+    return `<div class="px-4">${highlightedLine || ' '}</div>`
+  })
+
   return (
     <div className="grid gap-8 lg:grid-cols-12 items-start">
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes registerFlash {
+          0% { background-color: rgba(59, 130, 246, 0.4); border-color: rgba(59, 130, 246, 0.8); transform: scale(1.02); }
+          100% { background-color: rgba(30, 41, 59, 0.3); border-color: rgba(241, 245, 249, 0.05); transform: scale(1); }
+        }
+        .animate-register-flash {
+          animation: registerFlash 0.8s ease-out;
+        }
+        @keyframes flagToggle {
+          0% { transform: scale(0.9); }
+          50% { transform: scale(1.1); }
+          100% { transform: scale(1); }
+        }
+        .animate-flag-toggle {
+          animation: flagToggle 0.3s ease-in-out;
+        }
+      `}} />
+
       {/* Left Sidebar - Tutorial Lessons (Col 4) */}
       <div className="lg:col-span-4 space-y-4">
         <div className="rounded-xl border border-border/60 bg-card/25 p-5 glass-panel">
@@ -793,24 +940,46 @@ export function EMU8086Simulator({ tutorials }: EMU8086SimulatorProps) {
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-primary/10 border border-primary/20 text-xs font-mono font-bold text-primary hover:bg-primary/20 transition-all cursor-pointer"
             >
               <Settings2 size={13} />
-              Compilar / Cargar
+              Compilar
             </button>
+
+            {isRunning ? (
+              <button
+                onClick={handlePause}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs font-mono font-bold text-amber-400 hover:bg-amber-500/20 transition-all cursor-pointer"
+              >
+                <Pause size={13} />
+                Pausar
+              </button>
+            ) : (
+              <button
+                onClick={handleRun}
+                disabled={executionHalted}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs font-mono font-bold text-emerald-400 hover:bg-emerald-500/20 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              >
+                <Play size={13} />
+                Ejecutar (Run)
+              </button>
+            )}
+
             <button
               onClick={handleStep}
               disabled={!isCompiled || executionHalted || isRunning}
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-blue-500/10 border border-blue-500/20 text-xs font-mono font-bold text-blue-400 hover:bg-blue-500/20 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
             >
               <ChevronRight size={13} />
-              Paso (Step)
+              Paso a Paso
             </button>
+
             <button
-              onClick={handleRun}
-              disabled={isRunning || executionHalted}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs font-mono font-bold text-emerald-400 hover:bg-emerald-500/20 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              onClick={handleStop}
+              disabled={!isCompiled}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-zinc-500/10 border border-zinc-500/20 text-xs font-mono font-bold text-zinc-400 hover:bg-zinc-500/20 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
             >
-              <Play size={13} />
-              Simular (Run)
+              <Square size={11} />
+              Detener
             </button>
+
             <button
               onClick={handleReset}
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-rose-500/10 border border-rose-500/20 text-xs font-mono font-bold text-rose-400 hover:bg-rose-500/20 transition-all cursor-pointer"
@@ -847,13 +1016,51 @@ export function EMU8086Simulator({ tutorials }: EMU8086SimulatorProps) {
                 </div>
               </div>
 
-              <textarea
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                spellCheck="false"
-                className="w-full h-80 bg-black/60 p-4 font-mono text-xs text-zinc-100 border-0 focus:bg-black/80 focus:ring-1 focus:ring-primary/20 focus:outline-none resize-none leading-relaxed select-text"
-                placeholder="Escribe tus mnemónicos aquí..."
-              />
+              {/* Overlapping Line-Numbered Custom Text Editor */}
+              <div className="relative w-full h-80 bg-black/60 flex font-mono text-xs overflow-hidden border-0">
+                {/* Line numbers column */}
+                <div 
+                  ref={lineNoRef}
+                  className="w-10 bg-zinc-950/65 py-4 border-r border-border/40 select-none text-right pr-2.5 text-zinc-600 overflow-hidden"
+                >
+                  {rawLines.map((_, i) => {
+                    const isExecuting = isCompiled && currentLineIndex !== null && 
+                      compiledInstructions[currentLineIndex] && 
+                      (compiledInstructions[currentLineIndex].lineNum - 1 === i)
+                    return (
+                      <div 
+                        key={i} 
+                        style={{ height: '20px', lineHeight: '20px' }}
+                        className={`text-[11px] ${isExecuting ? 'text-primary font-bold' : ''}`}
+                      >
+                        {i + 1}
+                      </div>
+                    )
+                  })}
+                </div>
+                
+                {/* Editor Content Area */}
+                <div className="relative flex-1 h-full overflow-hidden bg-black/40">
+                  {/* Highlighter layer */}
+                  <pre 
+                    ref={preRef}
+                    style={{ lineHeight: '20px', padding: '16px 16px 24px 16px' }}
+                    className="absolute top-0 left-0 m-0 w-full h-full pointer-events-none select-none text-zinc-300 z-0 overflow-hidden whitespace-pre font-mono"
+                    dangerouslySetInnerHTML={{ __html: highlightedCodeLines.join('\n') }}
+                  />
+                  {/* Textarea input layer */}
+                  <textarea
+                    ref={editorRef}
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                    onScroll={handleScroll}
+                    style={{ lineHeight: '20px', padding: '16px 16px 24px 16px' }}
+                    spellCheck="false"
+                    className="absolute top-0 left-0 m-0 w-full h-full bg-transparent text-transparent caret-white z-10 focus:outline-none resize-none whitespace-pre font-mono overflow-auto select-text"
+                    placeholder="Escribe tus mnemónicos aquí..."
+                  />
+                </div>
+              </div>
             </div>
 
             {/* MS-DOS Console Output Screen */}
@@ -883,7 +1090,12 @@ export function EMU8086Simulator({ tutorials }: EMU8086SimulatorProps) {
 
               <div className="grid grid-cols-2 gap-3 text-xs font-mono">
                 {/* AX */}
-                <div className="border border-border/50 rounded-lg p-2.5 bg-background/30 flex items-center justify-between">
+                <div 
+                  key={`ax-${registers.AX}`} 
+                  className={`border border-border/50 rounded-lg p-2.5 bg-background/30 flex items-center justify-between transition-all ${
+                    prevRegisters && registers.AX !== prevRegisters.AX ? 'animate-register-flash' : ''
+                  }`}
+                >
                   <div>
                     <span className="text-muted-foreground/80 block">AX</span>
                     <span className="text-primary font-bold">0x{registers.AX.toString(16).toUpperCase().padStart(4, '0')}</span>
@@ -895,7 +1107,12 @@ export function EMU8086Simulator({ tutorials }: EMU8086SimulatorProps) {
                 </div>
 
                 {/* BX */}
-                <div className="border border-border/50 rounded-lg p-2.5 bg-background/30 flex items-center justify-between">
+                <div 
+                  key={`bx-${registers.BX}`} 
+                  className={`border border-border/50 rounded-lg p-2.5 bg-background/30 flex items-center justify-between transition-all ${
+                    prevRegisters && registers.BX !== prevRegisters.BX ? 'animate-register-flash' : ''
+                  }`}
+                >
                   <div>
                     <span className="text-muted-foreground/80 block">BX</span>
                     <span className="text-primary font-bold">0x{registers.BX.toString(16).toUpperCase().padStart(4, '0')}</span>
@@ -907,7 +1124,12 @@ export function EMU8086Simulator({ tutorials }: EMU8086SimulatorProps) {
                 </div>
 
                 {/* CX */}
-                <div className="border border-border/50 rounded-lg p-2.5 bg-background/30 flex items-center justify-between">
+                <div 
+                  key={`cx-${registers.CX}`} 
+                  className={`border border-border/50 rounded-lg p-2.5 bg-background/30 flex items-center justify-between transition-all ${
+                    prevRegisters && registers.CX !== prevRegisters.CX ? 'animate-register-flash' : ''
+                  }`}
+                >
                   <div>
                     <span className="text-muted-foreground/80 block">CX</span>
                     <span className="text-primary font-bold">0x{registers.CX.toString(16).toUpperCase().padStart(4, '0')}</span>
@@ -919,7 +1141,12 @@ export function EMU8086Simulator({ tutorials }: EMU8086SimulatorProps) {
                 </div>
 
                 {/* DX */}
-                <div className="border border-border/50 rounded-lg p-2.5 bg-background/30 flex items-center justify-between">
+                <div 
+                  key={`dx-${registers.DX}`} 
+                  className={`border border-border/50 rounded-lg p-2.5 bg-background/30 flex items-center justify-between transition-all ${
+                    prevRegisters && registers.DX !== prevRegisters.DX ? 'animate-register-flash' : ''
+                  }`}
+                >
                   <div>
                     <span className="text-muted-foreground/80 block">DX</span>
                     <span className="text-primary font-bold">0x{registers.DX.toString(16).toUpperCase().padStart(4, '0')}</span>
@@ -931,27 +1158,52 @@ export function EMU8086Simulator({ tutorials }: EMU8086SimulatorProps) {
                 </div>
 
                 {/* SP & BP */}
-                <div className="border border-border/50 rounded-lg p-2.5 bg-background/30">
+                <div 
+                  key={`sp-${registers.SP}`}
+                  className={`border border-border/50 rounded-lg p-2.5 bg-background/30 transition-all ${
+                    prevRegisters && registers.SP !== prevRegisters.SP ? 'animate-register-flash' : ''
+                  }`}
+                >
                   <span className="text-muted-foreground/80 block text-[10px]">PILA SP</span>
                   <span className="text-white font-semibold">0x{registers.SP.toString(16).toUpperCase().padStart(4, '0')}</span>
                 </div>
-                <div className="border border-border/50 rounded-lg p-2.5 bg-background/30">
+                <div 
+                  key={`bp-${registers.BP}`}
+                  className={`border border-border/50 rounded-lg p-2.5 bg-background/30 transition-all ${
+                    prevRegisters && registers.BP !== prevRegisters.BP ? 'animate-register-flash' : ''
+                  }`}
+                >
                   <span className="text-muted-foreground/80 block text-[10px]">BASE BP</span>
                   <span className="text-white font-semibold">0x{registers.BP.toString(16).toUpperCase().padStart(4, '0')}</span>
                 </div>
 
                 {/* SI & DI */}
-                <div className="border border-border/50 rounded-lg p-2.5 bg-background/30">
+                <div 
+                  key={`si-${registers.SI}`}
+                  className={`border border-border/50 rounded-lg p-2.5 bg-background/30 transition-all ${
+                    prevRegisters && registers.SI !== prevRegisters.SI ? 'animate-register-flash' : ''
+                  }`}
+                >
                   <span className="text-muted-foreground/80 block text-[10px]">ORIGEN SI</span>
                   <span className="text-white font-semibold">0x{registers.SI.toString(16).toUpperCase().padStart(4, '0')}</span>
                 </div>
-                <div className="border border-border/50 rounded-lg p-2.5 bg-background/30">
+                <div 
+                  key={`di-${registers.DI}`}
+                  className={`border border-border/50 rounded-lg p-2.5 bg-background/30 transition-all ${
+                    prevRegisters && registers.DI !== prevRegisters.DI ? 'animate-register-flash' : ''
+                  }`}
+                >
                   <span className="text-muted-foreground/80 block text-[10px]">DESTINO DI</span>
                   <span className="text-white font-semibold">0x{registers.DI.toString(16).toUpperCase().padStart(4, '0')}</span>
                 </div>
 
                 {/* IP Instruction Pointer */}
-                <div className="border border-primary/20 rounded-lg p-2.5 bg-primary/5 col-span-2 flex items-center justify-between">
+                <div 
+                  key={`ip-${registers.IP}`}
+                  className={`border border-primary/20 rounded-lg p-2.5 bg-primary/5 col-span-2 flex items-center justify-between transition-all ${
+                    prevRegisters && registers.IP !== prevRegisters.IP ? 'animate-register-flash' : ''
+                  }`}
+                >
                   <div>
                     <span className="text-primary block text-[10px] font-bold">PUNTERO DE INSTRUCCIÓN (IP)</span>
                     <span className="text-primary font-bold text-sm">Line {registers.IP || 0}</span>
@@ -973,19 +1225,46 @@ export function EMU8086Simulator({ tutorials }: EMU8086SimulatorProps) {
 
               <div className="grid grid-cols-3 gap-3 text-center text-xs font-mono">
                 {/* ZF */}
-                <div className={`border rounded-lg p-3 ${flags.ZF === 1 ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400' : 'border-border/60 bg-background/20 text-muted-foreground'}`}>
+                <div 
+                  key={`zf-${flags.ZF}`}
+                  className={`border rounded-lg p-3 transition-all ${
+                    prevFlags && flags.ZF !== prevFlags.ZF ? 'animate-flag-toggle' : ''
+                  } ${
+                    flags.ZF === 1 
+                      ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400 font-bold' 
+                      : 'border-border/60 bg-background/20 text-muted-foreground'
+                  }`}
+                >
                   <div className="text-[10px] font-bold">ZF (Zero)</div>
                   <div className="text-lg font-extrabold mt-1">{flags.ZF}</div>
                 </div>
 
                 {/* CF */}
-                <div className={`border rounded-lg p-3 ${flags.CF === 1 ? 'border-primary/50 bg-primary/10 text-primary' : 'border-border/60 bg-background/20 text-muted-foreground'}`}>
+                <div 
+                  key={`cf-${flags.CF}`}
+                  className={`border rounded-lg p-3 transition-all ${
+                    prevFlags && flags.CF !== prevFlags.CF ? 'animate-flag-toggle' : ''
+                  } ${
+                    flags.CF === 1 
+                      ? 'border-primary/50 bg-primary/10 text-primary font-bold' 
+                      : 'border-border/60 bg-background/20 text-muted-foreground'
+                  }`}
+                >
                   <div className="text-[10px] font-bold">CF (Carry)</div>
                   <div className="text-lg font-extrabold mt-1">{flags.CF}</div>
                 </div>
 
                 {/* SF */}
-                <div className={`border rounded-lg p-3 ${flags.SF === 1 ? 'border-amber-500/50 bg-amber-500/10 text-amber-400' : 'border-border/60 bg-background/20 text-muted-foreground'}`}>
+                <div 
+                  key={`sf-${flags.SF}`}
+                  className={`border rounded-lg p-3 transition-all ${
+                    prevFlags && flags.SF !== prevFlags.SF ? 'animate-flag-toggle' : ''
+                  } ${
+                    flags.SF === 1 
+                      ? 'border-amber-500/50 bg-amber-500/10 text-amber-400 font-bold' 
+                      : 'border-border/60 bg-background/20 text-muted-foreground'
+                  }`}
+                >
                   <div className="text-[10px] font-bold">SF (Sign)</div>
                   <div className="text-lg font-extrabold mt-1">{flags.SF}</div>
                 </div>

@@ -1,4 +1,5 @@
 import { Header } from '@/components/header'
+import { LayoutWrapper } from '@/components/layout-wrapper'
 import { ArduinoSimulator } from '@/components/arduino-simulator'
 import Link from 'next/link'
 import { Home, ChevronRight, CircuitBoard, Cpu, Zap, BookOpen } from 'lucide-react'
@@ -10,7 +11,8 @@ export const metadata = {
 
 export default function TutorialArduinoPage() {
   return (
-    <main className="min-h-screen bg-background relative overflow-hidden pb-20">
+    <LayoutWrapper>
+      <main className="min-h-screen bg-background relative overflow-hidden pb-20">
       {/* Background layers */}
       <div className="fixed inset-0 pointer-events-none">
         <div className="absolute inset-0 tech-grid-fine opacity-50" />
@@ -130,5 +132,6 @@ export default function TutorialArduinoPage() {
         </div>
       </section>
     </main>
+    </LayoutWrapper>
   )
 }

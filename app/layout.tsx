@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Outfit, JetBrains_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+import { SearchDialog } from '@/components/search-dialog'
 import './globals.css'
 
 const outfit = Outfit({
@@ -52,9 +53,11 @@ export default function RootLayout({
     <html lang="es" className="dark bg-background scroll-smooth">
       <body className={`${outfit.variable} ${jetbrainsMono.variable} font-sans antialiased text-foreground selection:bg-primary/30 selection:text-foreground`}>
         {children}
+        <SearchDialog />
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>
   )
 }
+
 

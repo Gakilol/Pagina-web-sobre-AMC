@@ -1,4 +1,5 @@
 import { Header } from '@/components/header'
+import { LayoutWrapper } from '@/components/layout-wrapper'
 import Link from 'next/link'
 import { ChevronRight, Home, BookOpen, Brain, Download, ChevronLeft, FileSpreadsheet } from 'lucide-react'
 import { getUnitById, getLessonsByUnitId, getQuizzesByUnitId, getGuidesByUnitId } from '@/lib/db-service'
@@ -29,30 +30,33 @@ export default async function UnitDetailPage({ params }: PageProps) {
 
   if (!unit) {
     return (
-      <main className="min-h-screen bg-background relative overflow-hidden">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:3rem_3rem] pointer-events-none"></div>
-        <Header />
-        <section className="mx-auto max-w-3xl px-4 py-24 text-center z-10 relative">
-          <div className="p-8 rounded-xl border border-destructive/20 bg-destructive/5 glass-panel">
-            <h1 className="text-3xl font-extrabold text-white mb-4">Unidad No Encontrada</h1>
-            <p className="text-muted-foreground mb-8">
-              No hemos podido localizar la unidad curricular especificada en la base de datos o almacenamiento local.
-            </p>
-            <Link
-              href="/unidades"
-              className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 font-bold text-primary-foreground hover:bg-primary/90 transition-colors cursor-pointer"
-            >
-              <ChevronLeft size={20} />
-              Volver a Unidades
-            </Link>
-          </div>
-        </section>
-      </main>
+      <LayoutWrapper>
+        <main className="min-h-screen bg-background relative overflow-hidden">
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:3rem_3rem] pointer-events-none"></div>
+          <Header />
+          <section className="mx-auto max-w-3xl px-4 py-24 text-center z-10 relative">
+            <div className="p-8 rounded-xl border border-destructive/20 bg-destructive/5 glass-panel">
+              <h1 className="text-3xl font-extrabold text-white mb-4">Unidad No Encontrada</h1>
+              <p className="text-muted-foreground mb-8">
+                No hemos podido localizar la unidad curricular especificada en la base de datos o almacenamiento local.
+              </p>
+              <Link
+                href="/unidades"
+                className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 font-bold text-primary-foreground hover:bg-primary/90 transition-colors cursor-pointer"
+              >
+                <ChevronLeft size={20} />
+                Volver a Unidades
+              </Link>
+            </div>
+          </section>
+        </main>
+      </LayoutWrapper>
     )
   }
 
   return (
-    <main className="min-h-screen bg-background relative overflow-hidden pb-20">
+    <LayoutWrapper>
+      <main className="min-h-screen bg-background relative overflow-hidden pb-20">
       {/* Decorative Grid Lines */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:4rem_4rem] pointer-events-none"></div>
       <div className="absolute top-[10%] left-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[110px] pointer-events-none"></div>
@@ -222,5 +226,6 @@ export default async function UnitDetailPage({ params }: PageProps) {
         </div>
       </section>
     </main>
+    </LayoutWrapper>
   )
 }

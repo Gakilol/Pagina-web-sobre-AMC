@@ -1,4 +1,5 @@
 import { Header } from '@/components/header'
+import { LayoutWrapper } from '@/components/layout-wrapper'
 import Link from 'next/link'
 import { Home, ChevronRight, Download, FileSpreadsheet, CircuitBoard } from 'lucide-react'
 import { getAllGuides, getUnits } from '@/lib/db-service'
@@ -11,7 +12,8 @@ export default async function DescargasPage() {
   const units = await getUnits()
 
   return (
-    <main className="min-h-screen bg-background relative overflow-hidden pb-16">
+    <LayoutWrapper>
+      <main className="min-h-screen bg-background relative overflow-hidden pb-16">
       {/* Decorative Grid Lines */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:3rem_3rem] pointer-events-none"></div>
       <div className="absolute top-[10%] right-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[100px] pointer-events-none"></div>
@@ -63,5 +65,6 @@ export default async function DescargasPage() {
         <DownloadsClient initialGuides={guides} units={units} />
       </section>
     </main>
+    </LayoutWrapper>
   )
 }
